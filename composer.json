@@ -1,0 +1,76 @@
+{
+    "name": "biurad/biurad-framework",
+    "type": "library",
+    "description": "Framework Core manages an environment made of application kernel, components, and more.",
+    "keywords": [
+        "mvc",
+        "framework",
+        "biuradphp",
+        "php7"
+    ],
+    "homepage": "https://www.biurad.com",
+    "license": "BSD-3-Clause",
+    "authors": [
+        {
+            "name": "Divine Niiquaye Ibok",
+            "email": "divineibok@gmail.com"
+        },
+        {
+            "name": "Biurad Lap Community",
+            "homepage": "https://biurad.com/contributors"
+        }
+    ],
+    "require": {
+        "php": "^7.2",
+        "biurad/biurad-caching": "^0.2",
+        "biurad/biurad-events-bus": "^0.1",
+        "biurad/biurad-http": "^0.1",
+        "biurad/biurad-http-cache": "^0.1",
+        "biurad/biurad-loader": "^0.1",
+        "biurad/biurad-sessions": "^0.1",
+        "biurad/biurad-security": "^0.1",
+        "biurad/biurad-scaffolder": "^0.1",
+        "biurad/biurad-terminal": "^0.1",
+        "biurad/biurad-templating": "^0.1",
+        "biurad/doctrine-annotations-bridge": "^0.1",
+        "biurad/flight-routing-bridge": "^0.1",
+        "biurad/monolog-bridge": "^0.1",
+        "biurad/nette-di-bridge": "^0.1",
+        "tracy/tracy": "^2.7"
+    },
+    "require-dev": {
+        "laminas/laminas-stdlib": "^3.2.1",
+        "phpunit/phpunit": "^8.4",
+        "roave/security-advisories": "dev-master",
+        "symfony/dotenv": "^4.4"
+    },
+    "suggest": {
+        "biurad/biurad-documentation": "The official documentation for BiuradPHP",
+        "biurad/biurad-database": "A high performance, easy to use database system for your project",
+        "biurad/biurad-flysystem": "A FileManager for handling filesytem on local disk and cloud storage",
+        "biurad/biurad-mvc-module": "An enterprise system building your amazing project",
+        "biurad/cycle-orm-bridge": "A high performance ORM database system for biurad/biurad-database",
+        "biurad/latte-bridge": "An amazing template engine for biurad/biurad-templating",
+        "symfony-forms-brdige": "An amazing tool allowing you to create, process and reuse html forms.",
+        "symfony-translation-bridge": "An amazing tool for creating an internationalized application"
+    },
+    "autoload": {
+        "psr-4": {
+            "BiuradPHP\\MVC\\": "src/"
+        },
+        "exclude-from-classmap": [
+            "/Tests/"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "BiuradPHP\\MVC\\Tests\\": "Tests/"
+        }
+    },
+    "minimum-stability": "dev",
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.0-dev"
+        }
+    }
+}
