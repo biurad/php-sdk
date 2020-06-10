@@ -77,7 +77,7 @@ class CoreKernel
 
     public function __construct(string $rootPath)
     {
-        $this->parameters = $this->getDefaultParameters($rootPath);
+        $this->parameters = self::escape($this->getDefaultParameters($rootPath));
     }
 
     /**
@@ -126,7 +126,7 @@ class CoreKernel
      */
     public function setTempDirectory(string $path)
     {
-        $this->parameters['path']['TEMP'] = $path;
+        $this->parameters['path']['TEMP'] = self::escape($path);
 
         return $this;
     }
@@ -285,11 +285,25 @@ class CoreKernel
     public function loadContainer(): string
     {
         $loader = new BiuradPHP\DependencyInjection\Concerns\ContainerLoader(
-            $this->getCacheDirectory().'/biurad.container', $this->parameters['env']['DEBUG']
+            $this->getCacheDirectory().'/biurad.container',
+            $this->parameters['env']['DEBUG']
         );
+
+        try {
+            $loaderRc = (new ReflectionClass(Composer\Autoload\ClassLoader::class))->getFileName();
+        } catch (ReflectionException $e) {
+            $loaderRc = null;
+        }
+
         $class = $loader->load(
             [$this, 'generateContainer'],
-            [$this->parameters, array_keys($this->dynamicParameters), $this->configs, PHP_VERSION_ID - PHP_RELEASE_VERSION]
+            [
+                $this->parameters,
+                array_keys($this->dynamicParameters),
+                $this->configs,
+                PHP_VERSION_ID - PHP_RELEASE_VERSION, // minor PHP version
+                file_exists($loaderRc) ? filemtime($loaderRc) : null, // composer update
+            ]
         );
 
         return $class;
@@ -347,9 +361,23 @@ class CoreKernel
         if (empty($this->parameters['path']['TEMP'])) {
             throw new Nette\InvalidStateException('Set path to temporary directory using setTempDirectory().');
         }
-        $dir = $this->parameters['path']['TEMP'].'/caches';
+
+        $dir = Nette\DI\Helpers::expand('%path.TEMP%/caches', $this->parameters, true);
         Nette\Utils\FileSystem::createDir($dir);
 
         return $dir;
     }
+
+    /**
+	 * Expand counterpart.
+	 */
+	private static function escape($value)
+	{
+		if (is_array($value)) {
+			return array_map([self::class, 'escape'], $value);
+		} elseif (is_string($value)) {
+			return str_replace('%', '%%', $value);
+		}
+		return $value;
+	}
 }
