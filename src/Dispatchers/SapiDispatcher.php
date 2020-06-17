@@ -1,48 +1,32 @@
 <?php
-/** @noinspection PhpUndefinedClassInspection */
 
 declare(strict_types=1);
 
 /*
- * This code is under BSD 3-Clause "New" or "Revised" License.
- *
- * ---------------------------------------------------------------------------
- * BiuradPHP Framework is a new scheme of php architecture which is simple,  |
- * yet has powerful features. The framework has been built carefully 	     |
- * following the rules of the new PHP 7.2 and 7.3 above, with no support     |
- * for the old versions of PHP. As this framework was inspired by            |
- * several conference talks about the future of PHP and its development,     |
- * this framework has the easiest and best approach to the PHP world,        |
- * of course, using a few intentionally procedural programming module.       |
- * This makes BiuradPHP framework extremely readable and usable for all.     |
- * BiuradPHP is a 35% clone of symfony framework and 30% clone of Nette	     |
- * framework. The performance of BiuradPHP is 300ms on development mode and  |
- * on production mode it's even better with great defense security.          |
- * ---------------------------------------------------------------------------
+ * This file is part of BiuradPHP opensource projects.
  *
  * PHP version 7.2 and above required
- *
- * @category  BiuradPHP-Framework
  *
  * @author    Divine Niiquaye Ibok <divineibok@gmail.com>
  * @copyright 2019 Biurad Group (https://biurad.com/)
  * @license   https://opensource.org/licenses/BSD-3-Clause License
  *
- * @link      https://www.biurad.com/projects/biurad-framework
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
 namespace BiuradPHP\MVC\Dispatchers;
 
+use BiuradPHP\Events\Interfaces\EventDispatcherInterface;
+use BiuradPHP\Http\Exceptions\ClientExceptions\TooManyRequestsException;
+use BiuradPHP\MVC\Events\FinishRequestEvent;
+use BiuradPHP\MVC\Events\RequestEvent;
+use BiuradPHP\MVC\Events\ResponseEvent;
+use BiuradPHP\MVC\Events\StartupEvent;
 use BiuradPHP\MVC\Interfaces\DispatcherInterface;
 use BiuradPHP\MVC\Interfaces\KernelInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use BiuradPHP\MVC\Events\FinishRequestEvent;
-use BiuradPHP\MVC\Events\ResponseEvent;
-use BiuradPHP\MVC\Events\StartupEvent;
-use BiuradPHP\Events\Interfaces\EventDispatcherInterface;
-use BiuradPHP\Http\Exceptions\ClientExceptions\TooManyRequestsException;
-use BiuradPHP\MVC\Events\RequestEvent;
 
 final class SapiDispatcher implements DispatcherInterface
 {
@@ -64,7 +48,7 @@ final class SapiDispatcher implements DispatcherInterface
      */
     public function canServe(): bool
     {
-        return PHP_SAPI !== 'cli';
+        return \PHP_SAPI !== 'cli';
     }
 
     /**
@@ -77,7 +61,7 @@ final class SapiDispatcher implements DispatcherInterface
     {
         // On demand to save some memory.
         process:
-        if (count($this->requests) > self::MAX_REQUEST) {
+        if (\count($this->requests) > self::MAX_REQUEST) {
             $exception = new TooManyRequestsException();
             $exception->withMessage('Too many request detected in application life cycle.');
 
@@ -101,14 +85,17 @@ final class SapiDispatcher implements DispatcherInterface
     /**
      * Filters a response object.
      *
-     * @param ResponseInterface $response
+     * @param ResponseInterface      $response
      * @param ServerRequestInterface $request
-     * @param KernelInterface $kernel
+     * @param KernelInterface        $kernel
      *
      * @return ResponseInterface
      */
-    private function filterResponse(ResponseInterface $response, ServerRequestInterface $request, KernelInterface $kernel): ResponseInterface
-    {
+    private function filterResponse(
+        ResponseInterface $response,
+        ServerRequestInterface $request,
+        KernelInterface $kernel
+    ): ResponseInterface {
         $event = new ResponseEvent($kernel, clone $request, $response);
 
         $this->dispatcher->dispatch($event);
@@ -125,11 +112,11 @@ final class SapiDispatcher implements DispatcherInterface
      * operations can lead to weird results.
      *
      * @param ServerRequestInterface $request
-     * @param KernelInterface $kernel
+     * @param KernelInterface        $kernel
      */
-    private function finishRequest(ServerRequestInterface $request, KernelInterface $kernel)
+    private function finishRequest(ServerRequestInterface $request, KernelInterface $kernel): void
     {
         $this->dispatcher->dispatch(new FinishRequestEvent($kernel, $request));
-        array_pop($this->requests);
+        \array_pop($this->requests);
     }
 }

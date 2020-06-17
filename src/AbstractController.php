@@ -1,54 +1,39 @@
-<?php /** @noinspection PhpUndefinedMethodInspection */
+<?php
 
 declare(strict_types=1);
 
 /*
- * This code is under BSD 3-Clause "New" or "Revised" License.
- *
- * ---------------------------------------------------------------------------
- * BiuradPHP Framework is a new scheme of php architecture which is simple,  |
- * yet has powerful features. The framework has been built carefully 	     |
- * following the rules of the new PHP 7.2 and 7.3 above, with no support     |
- * for the old versions of PHP. As this framework was inspired by            |
- * several conference talks about the future of PHP and its development,     |
- * this framework has the easiest and best approach to the PHP world,        |
- * of course, using a few intentionally procedural programming module.       |
- * This makes BiuradPHP framework extremely readable and usable for all.     |
- * BiuradPHP is a 35% clone of symfony framework and 30% clone of Nette	     |
- * framework. The performance of BiuradPHP is 300ms on development mode and  |
- * on production mode it's even better with great defense security.          |
- * ---------------------------------------------------------------------------
+ * This file is part of BiuradPHP opensource projects.
  *
  * PHP version 7.2 and above required
- *
- * @category  BiuradPHP-Framework
  *
  * @author    Divine Niiquaye Ibok <divineibok@gmail.com>
  * @copyright 2019 Biurad Group (https://biurad.com/)
  * @license   https://opensource.org/licenses/BSD-3-Clause License
  *
- * @link      https://www.biurad.com/projects/biurad-framework
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
 namespace BiuradPHP\MVC;
 
-use Exception;
-use LogicException;
-use Rakit\Validation\Validator;
-use Psr\Http\Message\ResponseInterface;
 use BiuradPHP\DependencyInjection\Interfaces;
+use BiuradPHP\Http\Exceptions\ClientExceptions\NotFoundException;
 use BiuradPHP\Http\Response\EmptyResponse;
 use BiuradPHP\Http\Response\JsonResponse;
 use BiuradPHP\Http\Response\RedirectResponse;
-use SplFileInfo;
-use Throwable;
-use Symfony\Component\Security\Csrf\CsrfToken;
+use Exception;
+use GuzzleHttp\Psr7\UploadedFile;
+use LogicException;
+use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\StreamInterface;
 use Psr\Http\Message\UploadedFileInterface;
-use GuzzleHttp\Psr7\UploadedFile;
-use BiuradPHP\Http\Exceptions\ClientExceptions\NotFoundException;
+use Rakit\Validation\Validator;
+use SplFileInfo;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Security\Csrf\CsrfToken;
+use Throwable;
 
 abstract class AbstractController
 {
@@ -59,6 +44,7 @@ abstract class AbstractController
      * Returns true if the service id is defined.
      *
      * @final
+     *
      * @param string $id
      *
      * @return bool
@@ -72,6 +58,7 @@ abstract class AbstractController
      * Gets a container service by its id.
      *
      * @final
+     *
      * @param string $id
      *
      * @return object The service
@@ -85,6 +72,7 @@ abstract class AbstractController
      * Gets a container configuration parameter by its name.
      *
      * @final
+     *
      * @param string $name
      *
      * @return mixed
@@ -98,10 +86,12 @@ abstract class AbstractController
      * Generates a URL from the given parameters.
      *
      * @final
+     *
      * @param string $route
-     * @param array $parameters
+     * @param array  $parameters
      *
      * @return string
+     *
      * @see UrlGeneratorInterface
      */
     protected function generateUri(string $route, array $parameters = []): string
@@ -113,8 +103,9 @@ abstract class AbstractController
      * Returns a RedirectResponse to the given URL.
      *
      * @final
+     *
      * @param string $url
-     * @param int $status
+     * @param int    $status
      *
      * @return RedirectResponse
      */
@@ -127,9 +118,10 @@ abstract class AbstractController
      * Returns a RedirectResponse to the given route with the given parameters.
      *
      * @final
+     *
      * @param string $route
-     * @param array $parameters
-     * @param int $status
+     * @param array  $parameters
+     * @param int    $status
      *
      * @return RedirectResponse
      */
@@ -141,18 +133,23 @@ abstract class AbstractController
     /**
      * Returns a UploadedFileResponse object with original or customized file name and disposition header.
      *
-     * @param SplFileInfo|string|resource|StreamInterface $file File object or path to file to be sent as response
-     * @param int $size
-     * @param int $error
-     * @param string|null $fileName
-     * @param string|null $mediaType
+     * @param resource|SplFileInfo|StreamInterface|string $file      File object or path to file to be sent as response
+     * @param int                                         $size
+     * @param int                                         $error
+     * @param null|string                                 $fileName
+     * @param null|string                                 $mediaType
      *
      * @return UploadedFileInterface
      * @final
      */
-    protected function file($file, int $size = null, int $error = UPLOAD_ERR_OK, string $fileName = null, string $mediaType = null): UploadedFileInterface
-    {
-        if ($file instanceof StreamInterface && is_null($size)) {
+    protected function file(
+        $file,
+        int $size = null,
+        int $error = \UPLOAD_ERR_OK,
+        string $fileName = null,
+        string $mediaType = null
+    ): UploadedFileInterface {
+        if ($file instanceof StreamInterface && null === $size) {
             $size = $file->getSize();
         }
 
@@ -163,6 +160,7 @@ abstract class AbstractController
      * Adds a flash message to the current session for type.
      *
      * @final
+     *
      * @param string $type
      * @param string $message
      *
@@ -181,6 +179,7 @@ abstract class AbstractController
      * Checks a flash message exists in current session for type.
      *
      * @final
+     *
      * @param string $type
      *
      * @return bool
@@ -198,8 +197,9 @@ abstract class AbstractController
      * Get a flash message from current session for type.
      *
      * @final
+     *
      * @param string $type
-     * @param bool $once Whether to get and pull-out flash or keep it.
+     * @param bool   $once whether to get and pull-out flash or keep it
      *
      * @return mixed
      */
@@ -221,37 +221,43 @@ abstract class AbstractController
     /**
      * Checks if the attributes are granted against the current authentication token and optionally supplied subject.
      *
-     * @param array|string $attributes
-     * @param null $subject
+     * @param string $attribute
+     * @param mixed  $subject
      *
      * @return bool
      * @final
      */
-    protected function isGranted($attributes, $subject = null): bool
+    protected function isGranted($attribute, $subject = null): bool
     {
         if (!$this->container->has('security.authorization_checker')) {
-            throw new LogicException('Security is not registered in your application. Try running "composer require biurad/biurad-security".');
+            throw new LogicException(
+                'Security is not found in your application. Try running "composer require biurad/biurad-security".'
+            );
         }
 
-        return $this->container->get('security.authorization_checker')->isGranted($attributes, $subject);
+        return $this->container->get('security.authorization_checker')->isGranted($attribute, $subject);
     }
 
     /**
      * Throws an exception unless the attributes are granted against the current authentication token and optionally
      * supplied subject.
      *
-     * @param $attributes
-     * @param null $subject
+     * @param string $attribute
+     * @param mixed  $subject
      * @param string $message
      *
      * @final
-     * @return AccessDeniedException|null
+     *
+     * @return null|AccessDeniedException
      */
-    protected function denyAccessUnlessGranted($attributes, $subject = null, string $message = 'Access Denied.'): ?AccessDeniedException
-    {
-        if (!$this->isGranted($attributes, $subject)) {
+    protected function denyAccessUnlessGranted(
+        string $attribute,
+        $subject = null,
+        string $message = 'Access Denied.'
+    ): ?AccessDeniedException {
+        if (!$this->isGranted($attribute, $subject)) {
             $exception = $this->createAccessDeniedException($message);
-            $exception->setAttributes($attributes);
+            $exception->setAttributes($attribute);
             $exception->setSubject($subject);
 
             return $exception;
@@ -264,16 +270,19 @@ abstract class AbstractController
      * Returns a rendered view.
      *
      * @final
-     * @param string $view
-     * @param array $parameters
-     * @param array $errors
      *
-     * @return string|null
+     * @param string $view
+     * @param array  $parameters
+     * @param array  $errors
+     *
+     * @return null|string
      */
     protected function renderView(string $view, array $parameters = [], array $errors = []): ?string
     {
         if (!$this->container->has('templating')) {
-            throw new LogicException('You can not use the "renderView" method if the Templating Component is not available. Try running "composer require biurad/template-manager".');
+            throw new LogicException(
+                'The Templating Component is not available. Try running "composer require biurad/biurad-templating".'
+            );
         }
 
         return $this->container->get('templating')->renderWithErrors($view, $parameters, $errors);
@@ -284,9 +293,9 @@ abstract class AbstractController
      *
      * NOTE: adding a [content-type => {type}] in $attributes will be added to response.
      *
-     * @param string|array $view Template name or array to json
-     * @param array $attributes Template data or json or empty response headers.
-     * @param array $errors
+     * @param array|string $view       Template name or array to json
+     * @param array        $attributes template data or json or empty response headers
+     * @param array        $errors
      *
      * @return ResponseInterface
      * @final
@@ -297,7 +306,7 @@ abstract class AbstractController
             return new EmptyResponse(204, $attributes);
         }
 
-        if (is_array($contents) && !empty($contents)) {
+        if (\is_array($contents) && !empty($contents)) {
             return new JsonResponse($view, 200, $attributes);
         }
 
@@ -305,7 +314,7 @@ abstract class AbstractController
 
         // Set a new response...
         $response = $this->get(ResponseInterface::class);
-        assert($response instanceof ResponseInterface);
+        \assert($response instanceof ResponseInterface);
 
         if (isset($attributes['content-type'])) {
             $response = $response->withHeader('Content-Type', $attributes['content-type']);
@@ -329,13 +338,16 @@ abstract class AbstractController
      *     throw $this->createNotFoundException('Page not found!');
      *
      * @final
-     * @param string $message
-     * @param Throwable|null $previous
+     *
+     * @param string         $message
+     * @param null|Throwable $previous
      *
      * @return NotFoundException
      */
-    protected function createNotFoundException(string $message = 'Not Found', Throwable $previous = null): NotFoundException
-    {
+    protected function createNotFoundException(
+        string $message = 'Not Found',
+        Throwable $previous = null
+    ): NotFoundException {
         $exception = new NotFoundException();
         $exception->withMessage($message);
         $exception->withPreviousException($previous);
@@ -350,16 +362,20 @@ abstract class AbstractController
      *
      *     throw $this->createAccessDeniedException('Unable to access this page!');
      *
-     * @param string $message
-     * @param Exception|null $previous
+     * @param string         $message
+     * @param null|Exception $previous
      *
      * @return AccessDeniedException
      * @final
      */
-    protected function createAccessDeniedException(string $message = 'Access Denied.', Exception $previous = null): AccessDeniedException
-    {
-        if (!class_exists(AccessDeniedException::class)) {
-            throw new LogicException('You can not use the "createAccessDeniedException" method if the Security component is not available. Try running "composer require symfony/security-core".');
+    protected function createAccessDeniedException(
+        string $message = 'Access Denied.',
+        Exception $previous = null
+    ): AccessDeniedException {
+        if (!\class_exists(AccessDeniedException::class)) {
+            throw new LogicException(
+                'The Security component is not available. Try running "composer require symfony/security-core".'
+            );
         }
 
         return new AccessDeniedException($message, $previous);
@@ -368,23 +384,25 @@ abstract class AbstractController
     /**
      * Get a user from the Security Guard.
      *
-     * @return UserInterface|null
-     *
      * @throws LogicException If is not available
+     *
+     * @return null|UserInterface
      *
      * @final
      */
     protected function getUser(): ?UserInterface
     {
         if (!$this->container->has('security.token_storage')) {
-            throw new LogicException('Security is not registered in your application. Try running "composer require biurad/biurad-security".');
+            throw new LogicException(
+                'Security is not found in your application. Try running "composer require biurad/biurad-security".'
+            );
         }
 
         if (null === $token = $this->container->get('security.token_storage')->getToken()) {
             return null;
         }
 
-        if (!is_object($user = $token->getUser())) {
+        if (!\is_object($user = $token->getUser())) {
             // e.g. anonymous authentication
             return null;
         }
@@ -398,13 +416,15 @@ abstract class AbstractController
      * @param array $fields
      * @param array $rules
      *
-     * @return array of validData or errors.
+     * @return array of validData or errors
      * @final
      */
-    protected function ValidateFields(array $fields, array $rules): array
+    protected function validateFields(array $fields, array $rules): array
     {
-        if (!class_exists(Validator::class)) {
-            throw new LogicException('The Validator is not registered in your application. Try running "composer require rakit/validation".');
+        if (!\class_exists(Validator::class)) {
+            throw new LogicException(
+                'The Validator is not registered in your application. Try running "composer require rakit/validation".'
+            );
         }
 
         // make it
@@ -414,7 +434,7 @@ abstract class AbstractController
         $validation = $valiate->validate($fields, $rules);
 
         if (false !== $validation->fails()) {
-            return array_merge($validation->errors()->firstOfAll(), ['error' => true]);
+            return \array_merge($validation->errors()->firstOfAll(), ['error' => true]);
         }
 
         //Get Valid Data
@@ -424,10 +444,11 @@ abstract class AbstractController
     /**
      * Checks the validity of a CSRF token.
      *
-     * @param string $id The id used when generating the token
-     * @param string|null $token The actual token sent with the request that should be validated
+     * @param string      $id    The id used when generating the token
+     * @param null|string $token The actual token sent with the request that should be validated
      *
      * @final
+     *
      * @return bool
      */
     protected function isCsrfTokenValid(string $id, ?string $token): bool
@@ -443,15 +464,15 @@ abstract class AbstractController
      * Dispatches an event to the controller.
      *
      * @param object|string $message The event's message to be dispatched
-     * @param array $payload
+     * @param array         $payload
      *
-     * @return object|mixed
+     * @return mixed|object
      * @final
      */
     protected function dispatchEvent($message, array $payload = [])
     {
         if (!$this->container->has('events')) {
-            throw new LogicException('The EventDispatcher is not enabled in your application. '.$message);
+            throw new LogicException('The EventDispatcher is not enabled in your application. ' . $message);
         }
 
         return $this->container->get('events')->dispatch($message, $payload);
