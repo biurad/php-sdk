@@ -18,10 +18,10 @@ declare(strict_types=1);
 namespace BiuradPHP\MVC\Bridges;
 
 use BiuradPHP;
+use BiuradPHP\Annotation\AnnotationLoader;
 use BiuradPHP\DependencyInjection\Concerns\Compiler;
 use BiuradPHP\DependencyInjection\Concerns\ImportsLocator;
 use BiuradPHP\DependencyInjection\Interfaces\PassCompilerAwareInterface;
-use BiuradPHP\Loader\Locators\AnnotationLocator;
 use BiuradPHP\MVC\Application;
 use BiuradPHP\MVC\Compilers\DisptacherPassCompiler;
 use BiuradPHP\MVC\Dispatchers\SapiDispatcher;
@@ -133,7 +133,7 @@ class FrameworkExtension extends BiuradPHP\DependencyInjection\CompilerExtension
 foreach (? as $annotation) {
     $this->get($annotation)->register($this->createInstance(?)); // For Runtime.
 }',
-            [$this->config['annotations'], AnnotationLocator::class]
+            [$this->config['annotations'], AnnotationLoader::class]
         );
     }
 }
