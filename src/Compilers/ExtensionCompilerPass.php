@@ -63,6 +63,7 @@ class ExtensionCompilerPass extends AbstractCompilerPass
         'cycle'         => BiuradPHP\CycleORM\Bridges\CycleExtension::class,
         'decorator'     => Nette\DI\Extensions\DecoratorExtension::class,
         'di'            => [Nette\DI\Extensions\DIExtension::class, ['%env.DEBUG%']],
+        'di_aware'      => BiuradPHP\DependencyInjection\Extensions\ContainerAwareExtension::class,
         'extensions'    => Nette\DI\Extensions\ExtensionsExtension::class,
         'http'          => [BiuradPHP\Http\Bridges\HttpExtension::class, ['%path.TEMP%/caches/biurad.http']],
         'inject'        => Nette\DI\Extensions\InjectExtension::class,
