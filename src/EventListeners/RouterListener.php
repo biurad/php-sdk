@@ -17,7 +17,6 @@ declare(strict_types=1);
 
 namespace BiuradPHP\MVC\EventListeners;
 
-use App\Kernel;
 use BiuradPHP\Events\Interfaces\EventSubscriberInterface;
 use BiuradPHP\Http\Exceptions\ClientExceptions\MethodNotAllowedException;
 use BiuradPHP\Http\Exceptions\ClientExceptions\NotFoundException;
@@ -57,11 +56,6 @@ class RouterListener implements EventSubscriberInterface
         // $_SERVER variables are not fully supported on CLI
         if ($event->getKernel()->runningInConsole()) {
             return;
-        }
-
-        if ($this->container instanceof Container && \class_exists(Kernel::class)) {
-            // Process Some routing settings before running annotations
-            $this->container->callMethod([Kernel::class, 'handleRouting']);
         }
 
         $request = $event->getRequest();
