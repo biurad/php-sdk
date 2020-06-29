@@ -19,8 +19,8 @@ namespace BiuradPHP\MVC\Compilers;
 
 use ArrayAccess;
 use BiuradPHP;
-use BiuradPHP\DependencyInjection\Compiler\AbstractCompilerPass;
-use BiuradPHP\DependencyInjection\Concerns\ContainerBuilder;
+use BiuradPHP\DependencyInjection\Compilers\AbstractCompilerPass;
+use BiuradPHP\DependencyInjection\Compilers\ContainerBuilder;
 use Countable;
 use Iterator;
 use IteratorAggregate;

@@ -19,8 +19,8 @@ namespace BiuradPHP\MVC\Bridges;
 
 use BiuradPHP;
 use BiuradPHP\Annotation\AnnotationLoader;
-use BiuradPHP\DependencyInjection\Concerns\Compiler;
-use BiuradPHP\DependencyInjection\Concerns\ImportsLocator;
+use BiuradPHP\DependencyInjection\Compilers\Compiler;
+use BiuradPHP\DependencyInjection\ImportsLocator;
 use BiuradPHP\DependencyInjection\Interfaces\PassCompilerAwareInterface;
 use BiuradPHP\MVC\Application;
 use BiuradPHP\MVC\Compilers\DisptacherPassCompiler;
@@ -89,8 +89,7 @@ class FrameworkExtension extends BiuradPHP\DependencyInjection\CompilerExtension
 
         $builder->register($this->prefix('dispatcher.web'), SapiDispatcher::class);
 
-        $framework = $builder->register($this->prefix('app'), new Statement([Application::class, 'init']))
-            ->addSetup('setLogger');
+        $framework = $builder->register($this->prefix('app'), new Statement([Application::class, 'init']));
 
         foreach ($this->config['dispatchers'] ?? [] as $dispatcher) {
             $framework->addSetup('addDispatcher', [new Statement($dispatcher)]);

@@ -271,7 +271,7 @@ class CoreKernel
      */
     public function loadContainer(): string
     {
-        $loader = new BiuradPHP\DependencyInjection\Concerns\ContainerLoader(
+        $loader = new BiuradPHP\DependencyInjection\Compilers\ContainerLoader(
             $this->getCacheDirectory() . '/biurad.container',
             $this->parameters['env']['DEBUG']
         );
@@ -297,11 +297,11 @@ class CoreKernel
     }
 
     /**
-     * @param BiuradPHP\DependencyInjection\Concerns\Compiler $compiler
+     * @param BiuradPHP\DependencyInjection\Compilers\Compiler $compiler
      *
      * @internal
      */
-    public function generateContainer(BiuradPHP\DependencyInjection\Concerns\Compiler $compiler): void
+    public function generateContainer(BiuradPHP\DependencyInjection\Compilers\Compiler $compiler): void
     {
         $loader = $this->createLoader();
         $loader->setParameters($this->parameters);

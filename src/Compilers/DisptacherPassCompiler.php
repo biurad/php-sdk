@@ -17,7 +17,7 @@ declare(strict_types=1);
 
 namespace BiuradPHP\MVC\Compilers;
 
-use BiuradPHP\DependencyInjection\Concerns\ContainerBuilder;
+use BiuradPHP\DependencyInjection\Compilers\ContainerBuilder;
 use BiuradPHP\DependencyInjection\Interfaces\CompilerPassInterface;
 use BiuradPHP\MVC\Application;
 use BiuradPHP\MVC\Interfaces\DispatcherInterface;
