@@ -35,18 +35,16 @@ use IteratorAggregate;
 use Nette\SmartObject;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Psr\Log\LoggerAwareInterface;
-use Psr\Log\LoggerAwareTrait;
+use Psr\Log\LoggerInterface;
 use Throwable;
 
 /**
  * Application class provides methods for handling current request and stores common runtime state.
  * It is also an IoC container.
  */
-class Application implements HttpKernelInterface, IteratorAggregate, LoggerAwareInterface
+class Application implements HttpKernelInterface, IteratorAggregate
 {
     use SmartObject;
-    use LoggerAwareTrait;
 
     /** @var DispatcherInterface[] */
     protected $dispatchers = [];
@@ -54,11 +52,14 @@ class Application implements HttpKernelInterface, IteratorAggregate, LoggerAware
     /** @var FactoryInterface */
     private $dependencyContainer;
 
+    /** @var EventDispatcherInterface */
     private $dispatcher;
 
-    private $base;
+    /** @var LoggerInterface */
+    private $logger;
 
-    private $paths = [];
+    /** @var string */
+    private $base;
 
     /**
      * Application constructor.
@@ -210,8 +211,10 @@ class Application implements HttpKernelInterface, IteratorAggregate, LoggerAware
         }
 
         if ($response instanceof ResponseInterface) {
+            // Turn Off The Lights...
+            $this->terminate($request, $response);
+
             // Send response to  the browser...
-            $this->terminate($request, $response); // Turn Off The Lights...
             (new HttpPublisher())->publish($response, $this->dependencyContainer->get('emitter'));
 
             return; // Response sent...
@@ -227,7 +230,7 @@ class Application implements HttpKernelInterface, IteratorAggregate, LoggerAware
     public function terminate(Request $request, ResponseInterface $response): void
     {
         $event = new TerminateEvent($this, $request, $response);
-        $this->dispatcher->dispatch($event);
+        $this->dispatcher->dispatch($event, KernelEvents::TERMINATE);
     }
 
     /**
@@ -262,7 +265,7 @@ class Application implements HttpKernelInterface, IteratorAggregate, LoggerAware
         foreach ($this as $dispatcher) {
             if (true === $dispatcher->canServe()) {
                 $event = new Events\StartupEvent($this, $request, $dispatcher);
-                $this->dispatcher->dispatch($event);
+                $this->dispatcher->dispatch($event, KernelEvents::START_UP);
 
                 return $this->dependencyContainer->callMethod([$event->getDispatcher(), 'serve'], [$event]);
             }
@@ -292,7 +295,9 @@ class Application implements HttpKernelInterface, IteratorAggregate, LoggerAware
         */
         $dependencyContainer->callMethod([Framework::class, 'setApplication']);
 
-        $this->paths = null;
+        if ($dependencyContainer->has(LoggerInterface::class)) {
+            $this->logger = $dependencyContainer->get(LoggerInterface::class);
+        }
     }
 
     /**
@@ -309,7 +314,7 @@ class Application implements HttpKernelInterface, IteratorAggregate, LoggerAware
     private function handleThrowable(Throwable $e, Request $request): ResponseInterface
     {
         $event = new ExceptionEvent($this, $request, $e);
-        $this->dispatcher->dispatch($event);
+        $this->dispatcher->dispatch($event, KernelEvents::EXCEPTION);
 
         // a listener might have replaced the exception and returned a response.
         $errorResponse  = $this->dependencyContainer->get(ErrorResponseGenerator::class);

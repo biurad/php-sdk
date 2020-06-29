@@ -17,21 +17,18 @@ declare(strict_types=1);
 
 namespace BiuradPHP\MVC\Events;
 
-use BiuradPHP\Events\Concerns\StoppableTrait;
 use BiuradPHP\MVC\Application;
 use BiuradPHP\MVC\Interfaces\KernelInterface as HttpKernelInterface;
-use Psr\EventDispatcher\StoppableEventInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Symfony\Contracts\EventDispatcher\Event;
 
 /**
  * Base class for events thrown in the HttpKernel component.
  *
  * @author Bernhard Schussek <bschussek@gmail.com>
  */
-abstract class KernelEvent implements StoppableEventInterface
+abstract class KernelEvent extends Event
 {
-    use StoppableTrait;
-
     private $kernel;
 
     private $request;
