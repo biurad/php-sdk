@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /*
- * This file is part of BiuradPHP opensource projects.
+ * This file is part of Biurad opensource projects.
  *
  * PHP version 7.2 and above required
  *
@@ -15,24 +15,10 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace BiuradPHP\MVC;
+namespace Biurad\Framework;
 
-use BiuradPHP\Database\DatabaseInterface;
-use BiuradPHP\DependencyInjection\Interfaces;
-use BiuradPHP\Events\Interfaces\EventDispatcherInterface;
-use BiuradPHP\FileManager\FileManager;
-use BiuradPHP\Loader\Resources\UniformResourceLocator;
-use BiuradPHP\MVC\Exceptions\FrameworkIOException;
-use BiuradPHP\Security\Interfaces\EncrypterInterface;
-use BiuradPHP\Session\Session;
-use Cycle\ORM\ORMInterface;
-use Doctrine\Common\Annotations\Reader;
-use Flight\Routing\RouteCollector;
-use Nette;
-use Psr\Container\ContainerInterface;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use Psr\SimpleCache\CacheInterface;
+use Biurad\Framework\Interfaces\FactoryInterface;
+use Nette\SmartObject;
 
 /**
  * A proxy static binding as instance of isseted class.
@@ -41,33 +27,18 @@ use Psr\SimpleCache\CacheInterface;
  *
  * The class must be compiled with an alias call.
  *
- * @author    Divine Niiquaye Ibok <divineibok@gmail.com>
- * @license   BSD-3-Clause
+ * @author Divine Niiquaye Ibok <divineibok@gmail.com>
  *
- * @method static CacheInterface cache()
- * @method static ServerRequestInterface request()
- * @method static RouteCollector router()
- * @method static ResponseInterface response()
- * @method static Session session()
- * @method static EventDispatcherInterface events()
- * @method static EncrypterInterface encrypter()
- * @method static UniformResourceLocator locator()
- * @method static FileManager flysystem()
- * @method static Application application()
- * @method static Reader annotation()
- * @method static ORMInterface orm()
- * @method static DatabaseInterface database()
- *
- * @see \BiuradPHP\MVC\Application
+ * @see Biurad\Framework\HttpKernel
  */
 class Framework
 {
-    use Nette\SmartObject;
+    use SmartObject;
 
     /**
      * The application instance being facaded.
      *
-     * @var ContainerInterface
+     * @var FactoryInterface
      */
     protected static $container;
 
@@ -87,11 +58,7 @@ class Framework
             return $container->get($name);
         }
 
-        if ($container instanceof Interfaces\FactoryInterface) {
-            return $container->createInstance($name, $arguments);
-        }
-
-        throw new FrameworkIOException(\sprintf('[%s] is not implemented to %s', $name, static::$container));
+        return $container->createInstance($name, $arguments);
     }
 
     /**
@@ -116,17 +83,17 @@ class Framework
      */
     public function __set(string $name, $value)
     {
-        return static::$container->bind($name, $value);
+        return static::$container->addService($name, $value);
     }
 
     /**
      * Set the instance implemeting Psr interface.
      *
-     * @param ContainerInterface $container
+     * @param FactoryInterface $container
      *
      * @return $this
      */
-    public static function setApplication(ContainerInterface $container): self
+    public static function setFactory(FactoryInterface $container): self
     {
         static::$container = $container;
 
