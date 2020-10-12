@@ -1,13 +1,8 @@
 {
-    "name": "biurad/biurad-framework",
+    "name": "biurad/php-sdk",
     "type": "library",
-    "description": "Framework Core manages an environment made of application kernel, components, and more.",
-    "keywords": [
-        "mvc",
-        "framework",
-        "biuradphp",
-        "php7"
-    ],
+    "description": "A PHP framework for nette, build with biurad libraries",
+    "keywords": ["mvc","framework","biurad","php7"],
     "homepage": "https://www.biurad.com",
     "license": "BSD-3-Clause",
     "authors": [
@@ -20,57 +15,65 @@
             "homepage": "https://biurad.com/contributors"
         }
     ],
+    "support": {
+        "docs": "https://docs.biurad.com/php-sdk#nette",
+        "issues": "https://github.com/biurad/php-sdk/issues",
+        "rss": "https://github.com/biurad/php-sdk/releases.atom",
+        "source": "https://github.com/biurad/php-sdk"
+    },
     "require": {
-        "php": "^7.2",
-        "biurad/biurad-caching": "^0.2",
-        "biurad/biurad-events-bus": "^0.1",
-        "biurad/biurad-http": "^0.1",
-        "biurad/biurad-http-cache": "^0.1",
-        "biurad/biurad-loader": "^0.1",
-        "biurad/biurad-sessions": "^0.1",
-        "biurad/biurad-security": "^0.1",
-        "biurad/biurad-scaffolder": "^0.1",
-        "biurad/biurad-terminal": "^0.1",
-        "biurad/biurad-templating": "^0.1",
-        "biurad/doctrine-annotations-bridge": "^0.1",
-        "biurad/flight-routing-bridge": "^0.1",
-        "biurad/monolog-bridge": "^0.1",
-        "biurad/nette-di-bridge": "^0.1",
+        "php": "^7.2 || ^8.0",
+        "ext-json": "*",
+        "ext-mbstring": "*",
+        "biurad/cache": "1.x-dev",
+        "biurad/events-bus": "1.x-dev",
+        "biurad/http-galaxy": "1.x-dev",
+        "divineniiquaye/flight-routing": "1.x-dev",
+        "nette/di": "^3.0",
+        "nette/bootstrap": "^3.0",
+        "psr/container": "^1.0",
+        "symfony/dotenv": "^5.1",
+        "symfony/process": "^5.1",
+        "symfony/web-link": "^5.1",
         "tracy/tracy": "^2.7"
     },
     "require-dev": {
-        "laminas/laminas-stdlib": "^3.2.1",
-        "phpunit/phpunit": "^8.4",
-        "roave/security-advisories": "dev-master",
-        "symfony/dotenv": "^4.4"
+        "composer/package-versions-deprecated": "^1.11",
+        "phpunit/phpunit": "^8.5 || ^9.0",
+        "psr/cache": "^1.0",
+        "squizlabs/php_codesniffer": "^3.5",
+        "vimeo/psalm": "^3.11"
     },
     "suggest": {
-        "biurad/biurad-documentation": "The official documentation for BiuradPHP",
-        "biurad/biurad-database": "A high performance, easy to use database system for your project",
-        "biurad/biurad-flysystem": "A FileManager for handling filesytem on local disk and cloud storage",
-        "biurad/biurad-mvc-module": "An enterprise system building your amazing project",
-        "biurad/cycle-orm-bridge": "A high performance ORM database system for biurad/biurad-database",
-        "biurad/latte-bridge": "An amazing template engine for biurad/biurad-templating",
-        "symfony-forms-brdige": "An amazing tool allowing you to create, process and reuse html forms.",
-        "symfony-translation-bridge": "An amazing tool for creating an internationalized application"
+        "biurad/cache": "To use the Cache Session Handler",
+        "biurad/flysystem": "A FileManager for handling filesytem on local disk and cloud storage",
+        "symfony/web-link": "To use PSR-13 link in application"
     },
     "autoload": {
         "psr-4": {
-            "BiuradPHP\\MVC\\": "src/"
-        },
-        "exclude-from-classmap": [
-            "/Tests/"
-        ]
+            "Biurad\\Framework\\": "src/"
+        }
     },
     "autoload-dev": {
         "psr-4": {
-            "BiuradPHP\\MVC\\Tests\\": "Tests/"
+            "Biurad\\Framework\\Tests\\": "tests/"
         }
     },
-    "minimum-stability": "dev",
     "extra": {
         "branch-alias": {
-            "dev-master": "1.0-dev"
+            "dev-master": "1.x-dev"
         }
-    }
+    },
+    "scripts": {
+        "phpcs": "phpcs -q",
+        "psalm": "psalm --show-info=true",
+        "phpunit": "phpunit --no-coverage",
+        "test": [
+            "@phpcs",
+            "@psalm",
+            "@phpunit"
+        ]
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }

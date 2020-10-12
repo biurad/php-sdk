@@ -9,7 +9,7 @@ Model-View-Controller is a software architecture that was created to satisfy the
 The recommended way to install Framework Core is via Composer:
 
 ```bash
-composer require biurad/biurad-framework
+composer require biurad/php-sdk
 ```
 
 ## Changelog

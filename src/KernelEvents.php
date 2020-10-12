@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /*
- * This file is part of BiuradPHP opensource projects.
+ * This file is part of Biurad opensource projects.
  *
  * PHP version 7.2 and above required
  *
@@ -15,36 +15,23 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace BiuradPHP\MVC;
-
-use Symfony\Component\Console\ConsoleEvents;
+namespace Biurad\Framework;
 
 /**
  * Contains all events thrown in the HttpKernel component.
  *
- * @author Divine Niiquaye Ibok <divineibok@gmail.com>
+ * @author Bernhard Schussek <bschussek@gmail.com>
  */
 final class KernelEvents
 {
     /**
-     * The START_UP events occurs at the very beginning of the
-     * framework.
-     *
-     * This event allows you to add something or use a request before any
-     * other code in the framework is executed.
-     *
-     * @Event("BiuradPHP\MVC\Events\StartupEvent")
-     */
-    public const START_UP = 'kernel.start';
-
-    /**
-     * The REQUEST event occurs only at servers that supports its
+     * The REQUEST event occurs at the very beginning of request
      * dispatching.
      *
      * This event allows you to create a response for a request before any
      * other code in the framework is executed.
      *
-     * @Event("BiuradPHP\MVC\Events\RequestEvent")
+     * @Event("Biurad\Framework\Event\RequestEvent")
      */
     public const REQUEST = 'kernel.request';
 
@@ -54,7 +41,7 @@ final class KernelEvents
      * This event allows you to create a response for a thrown exception or
      * to modify the thrown exception.
      *
-     * @Event("BiuradPHP\MVC\Events\RequestEvent")
+     * @Event("Biurad\Framework\Event\ExceptionEvent")
      */
     public const EXCEPTION = 'kernel.exception';
 
@@ -65,7 +52,7 @@ final class KernelEvents
      * This event allows you to change the controller that will handle the
      * request.
      *
-     * @Event("BiuradPHP\Routing\Events\ControllerEvent")
+     * @Event("Biurad\Framework\Event\ControllerEvent")
      */
     public const CONTROLLER = 'kernel.controller';
 
@@ -75,7 +62,7 @@ final class KernelEvents
      * This event allows you to change the arguments that will be passed to
      * the controller.
      *
-     * @Event("BiuradPHP\Routing\Events\ControllerArgumentsEvent")
+     * @Event("Biurad\Framework\Event\ControllerArgumentsEvent")
      */
     public const CONTROLLER_ARGUMENTS = 'kernel.controller_arguments';
 
@@ -86,18 +73,9 @@ final class KernelEvents
      * This event allows you to modify or replace the response that will be
      * replied.
      *
-     * @Event("BiuradPHP\MVC\Events\ResponseEvent")
+     * @Event("Biurad\Framework\Event\ResponseEvent")
      */
     public const RESPONSE = 'kernel.response';
-
-    /**
-     * The TERMINATE event occurs once a response was sent.
-     *
-     * This event allows you to run expensive post-response jobs.
-     *
-     * @Event("BiuradPHP\MVC\Events\TerminateEvent")
-     */
-    public const TERMINATE = 'kernel.terminate';
 
     /**
      * The FINISH_REQUEST event occurs when a response was generated for a request.
@@ -105,34 +83,16 @@ final class KernelEvents
      * This event allows you to reset the global and environmental state of
      * the application, when it was changed during the request.
      *
-     * @Event("BiuradPHP\MVC\Events\FinishRequestEvent")
+     * @Event("Biurad\Framework\Event\FinishRequestEvent")
      */
-    public const FINISH_REQUEST = 'kernel.finish';
+    public const FINISH_REQUEST = 'kernel.finish_request';
 
     /**
-     * The COMMAND event allows you to attach listeners before any command is
-     * executed by the console. It also allows you to modify the command, input and output
-     * before they are handled to the command.
+     * The TERMINATE event occurs once a response was sent.
      *
-     * @Event("Symfony\Component\Console\Event\ConsoleCommandEvent")
+     * This event allows you to run expensive post-response jobs.
+     *
+     * @Event("Biurad\Framework\Event\TerminateEvent")
      */
-    public const CONSOLE_COMMAND = ConsoleEvents::COMMAND;
-
-    /**
-     * The TERMINATE event allows you to attach listeners after a command is
-     * executed by the console.
-     *
-     * @Event("Symfony\Component\Console\Event\ConsoleTerminateEvent")
-     */
-    public const CONSOLE_TERMINATE = ConsoleEvents::TERMINATE;
-
-    /**
-     * The ERROR event occurs when an uncaught exception or error appears.
-     *
-     * This event allows you to deal with the exception/error or
-     * to modify the thrown exception.
-     *
-     * @Event("Symfony\Component\Console\Event\ConsoleErrorEvent")
-     */
-    public const CONSOLE_ERROR = ConsoleEvents::ERROR;
+    public const TERMINATE = 'kernel.terminate';
 }

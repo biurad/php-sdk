@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to `biurad/biurad-framework` will be documented in this file.
+All notable changes to `biurad/php-sdk` will be documented in this file.
 
 ## 1.0.5 - 2020-06-14
 - Improved code complexity and performace using cs fixtures
