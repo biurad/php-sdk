@@ -19,11 +19,17 @@ namespace Biurad\Framework\DependencyInjection\Extensions;
 
 use Biurad\Framework\Commands\AboutCommand;
 use Biurad\Framework\Commands\CacheCleanCommand;
+<<<<<<< HEAD
+use Biurad\Framework\ConsoleApp;
+use Biurad\Framework\DependencyInjection\Extension;
+use Doctrine\Common\Cache\Cache as DoctrineCache;
+=======
 use Biurad\Framework\Commands\ServerRunCommand;
 use Biurad\Framework\Commands\ServerStartCommand;
 use Biurad\Framework\Commands\ServerStopCommand;
 use Biurad\Framework\ConsoleApp;
 use Biurad\Framework\DependencyInjection\Extension;
+>>>>>>> master
 use Nette;
 use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\Statement;
@@ -38,10 +44,15 @@ class TerminalExtension extends Extension
      */
     public function getConfigSchema(): Nette\Schema\Schema
     {
+<<<<<<< HEAD
+        return Nette\Schema\Expect::structure([
+            'server_root'   => Nette\Schema\Expect::string()->default('public'),
+=======
         $webRoot = $this->getContainerBuilder()->getParameter('wwwDir');
 
         return Nette\Schema\Expect::structure([
             'server_root'   => Nette\Schema\Expect::string()->default($webRoot),
+>>>>>>> master
             'commands'      => Nette\Schema\Expect::arrayOf(
                 Expect::structure([
                     'class' => Nette\Schema\Expect::string()->assert('class_exists'),
@@ -81,6 +92,13 @@ class TerminalExtension extends Extension
             new Statement(
                 CacheCleanCommand::class,
                 [
+<<<<<<< HEAD
+                    new Reference(DoctrineCache::class),
+                    $container->getParameter('tempDir') . '/cache',
+                    $container->getParameter('tempDir') . '/logs',
+                ]
+            ),
+=======
                     1 => $container->getParameter('tempDir') . '/cache',
                     2 => $container->getParameter('tempDir') . '/logs',
                 ]
@@ -88,6 +106,7 @@ class TerminalExtension extends Extension
             new Statement(ServerRunCommand::class, [$this->config->server_root, $container->getParameter('envMode')]),
             new Statement(ServerStartCommand::class, [$this->config->server_root, $container->getParameter('envMode')]),
             ServerStopCommand::class,
+>>>>>>> master
             AboutCommand::class,
         ]);
 
