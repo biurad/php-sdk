@@ -265,7 +265,7 @@ class Builder extends NetteContainerBuilder
             $key = (string) $key;
         }
 
-        if (\array_key_exists($key, $array)) {
+        if (isset($array[$key])) {
             return $array[$key];
         }
 
