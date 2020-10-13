@@ -89,7 +89,7 @@ class Kernel
 
         //Load the environmental file.
         if (\file_exists($envPath = $directories['root'] . \DIRECTORY_SEPARATOR . '.env')) {
-            $_SERVER['APP_DEBUG'] = $loader->isDebugMode();
+            $_SERVER['APP_DEBUG'] = $loader->isDebugMode() || 'cli' === \PHP_SAPI;
 
             (new Dotenv())->loadEnv($envPath);
             $loader->addDynamicParameters(['env' => $_ENV]);
