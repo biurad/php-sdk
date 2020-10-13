@@ -19,9 +19,11 @@ namespace Biurad\Framework\DependencyInjection\Extensions;
 
 use Biurad\Framework\Commands\AboutCommand;
 use Biurad\Framework\Commands\CacheCleanCommand;
+use Biurad\Framework\Commands\ServerRunCommand;
+use Biurad\Framework\Commands\ServerStartCommand;
+use Biurad\Framework\Commands\ServerStopCommand;
 use Biurad\Framework\ConsoleApp;
 use Biurad\Framework\DependencyInjection\Extension;
-use Doctrine\Common\Cache\Cache as DoctrineCache;
 use Nette;
 use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\Statement;
@@ -36,8 +38,10 @@ class TerminalExtension extends Extension
      */
     public function getConfigSchema(): Nette\Schema\Schema
     {
+        $webRoot = $this->getContainerBuilder()->getParameter('wwwDir');
+
         return Nette\Schema\Expect::structure([
-            'server_root'   => Nette\Schema\Expect::string()->default('public'),
+            'server_root'   => Nette\Schema\Expect::string()->default($webRoot),
             'commands'      => Nette\Schema\Expect::arrayOf(
                 Expect::structure([
                     'class' => Nette\Schema\Expect::string()->assert('class_exists'),
@@ -77,11 +81,13 @@ class TerminalExtension extends Extension
             new Statement(
                 CacheCleanCommand::class,
                 [
-                    new Reference(DoctrineCache::class),
-                    $container->getParameter('tempDir') . '/cache',
-                    $container->getParameter('tempDir') . '/logs',
+                    1 => $container->getParameter('tempDir') . '/cache',
+                    2 => $container->getParameter('tempDir') . '/logs',
                 ]
             ),
+            new Statement(ServerRunCommand::class, [$this->config->server_root, $container->getParameter('envMode')]),
+            new Statement(ServerStartCommand::class, [$this->config->server_root, $container->getParameter('envMode')]),
+            ServerStopCommand::class,
             AboutCommand::class,
         ]);
 
