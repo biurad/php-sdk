@@ -83,6 +83,7 @@ class ExtensionLoader
         'http'          => [Biurad\Framework\DependencyInjection\Extensions\HttpExtension::class, ['%tempDir%/session']],
         'routing'       => Biurad\Framework\DependencyInjection\Extensions\RouterExtension::class,
         'console'       => Biurad\Framework\DependencyInjection\Extensions\TerminalExtension::class,
+        'filesystem'    => Biurad\Framework\DependencyInjection\Extensions\FileManagerExtension::class,
         'tracy'         => [Tracy\Bridges\Nette\TracyExtension::class, ['%debugMode%', '%consoleMode%']],
     ];
 
