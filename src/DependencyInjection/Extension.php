@@ -23,7 +23,9 @@ use Nette\DI\Definitions\Definition;
 use Nette\DI\Definitions\FactoryDefinition;
 use Nette\DI\Definitions\LocatorDefinition;
 use Nette\DI\Definitions\ServiceDefinition;
+use Nette\DI\Definitions\Statement;
 use Nette\DI\Resolver;
+use Nette\Utils\Strings;
 
 /**
  * Configurator compiling extension.
@@ -48,6 +50,34 @@ abstract class Extension extends NetteCompilerExtension
     public function getFromConfig(string $key)
     {
         return Builder::arrayGet($this->config, $key);
+    }
+
+    /**
+     * @param mixed[]|Statement|string $config
+     *
+     * @return Definition|string
+     */
+    public function getDefinitionFromConfig($config, string $preferredPrefix)
+    {
+        $builder = $this->compiler->getContainerBuilder();
+
+        // Definition is defined in ServicesExtension, try to get it
+        if (\is_string($config) && Strings::startsWith($config, '@')) {
+            $definitionName = \substr($config, 1);
+
+            // Definition is already loaded (beforeCompile phase), return it
+            if ($builder->hasDefinition($definitionName)) {
+                return $builder->getDefinition($definitionName);
+            }
+
+            // Definition not loaded yet (loadConfiguration phase), return reference string
+            return $config;
+        }
+
+        // Raw configuration given, create definition from it
+        $this->compiler->loadDefinitionsFromConfig([$preferredPrefix => $config]);
+
+        return $builder->getDefinition($preferredPrefix);
     }
 
     /**
