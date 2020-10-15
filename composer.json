@@ -29,6 +29,7 @@
         "biurad/events-bus": "1.x-dev",
         "biurad/http-galaxy": "1.x-dev",
         "divineniiquaye/flight-routing": "1.x-dev",
+        "doctrine/annotations": "^1.10",
         "nette/di": "^3.0",
         "nette/bootstrap": "^3.0",
         "psr/container": "^1.0",

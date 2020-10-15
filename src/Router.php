@@ -55,11 +55,12 @@ class Router extends FlightRouter
     protected function resolveController(ServerRequestInterface $request, RouteInterface &$route)
     {
         // Disable or enable HTTP request method prefix for action.
-        if (
-            \is_array($controller = $route->getController()) &&
-            false !== \strpos($route->getName(), '__restful')
-        ) {
-            $controller[1] = \strtolower($request->getMethod()) . \ucfirst($controller[1]);
+        if (str_ends_with($route->getName(), '__restful')) {
+            if (\is_array($controller = $route->getController())) {
+                $controller[1] = $this->getResourceMethod($request, $controller[1]);
+            } elseif (is_string($controller) && class_exists($controller)) {
+                $controller = [$controller, $this->getResourceMethod($request, substr($route->getName(), -0, -9))];
+            }
         }
 
         $handler   = $this->resolveNamespace($controller);
@@ -95,8 +96,9 @@ class Router extends FlightRouter
     private function handleEvent(&$controller, &$arguments, ServerRequestInterface $request): void
     {
         $dispatcher = $this->kernel->getEventDisptacher();
+        $callable   = $this->resolver->getCallableResolver();
 
-        $event = new ControllerEvent($this->kernel, $controller, $request);
+        $event = new ControllerEvent($this->kernel, $callable->resolve($controller), $request);
         $dispatcher->dispatch($event, KernelEvents::CONTROLLER);
 
         $event = new ControllerArgumentsEvent($this->kernel, $event->getController(), $arguments, $request);
@@ -105,5 +107,14 @@ class Router extends FlightRouter
         // Set the new arguments and controller.
         $controller = $event->getController();
         $arguments  = $event->getArguments();
+    }
+
+    /**
+     * @param ServerRequestInterface $request
+     * @param string $name
+     */
+    private function getResourceMethod(ServerRequestInterface $request, string $name): string
+    {
+        return \strtolower($request->getMethod()) . \ucfirst($name);
     }
 }

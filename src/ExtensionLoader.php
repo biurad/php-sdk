@@ -69,7 +69,7 @@ class ExtensionLoader
     /** @var array [id => CompilerExtension] */
     private $extensions = [
         'php'           => Nette\DI\Extensions\PhpExtension::class,
-        'loader'        => BiuradPHP\Loader\Bridges\LoaderExtension::class,
+        'annotation'    => Biurad\Framework\DependencyInjection\Extensions\AnnotationsExtension::class,
         'events'        => [BiuradPHP\Events\Bridges\EventsExtension::class, ['%debugMode%']],
         'caching'       => BiuradPHP\Cache\Bridges\CacheExtension::class,
         'constants'     => Nette\DI\Extensions\ConstantsExtension::class,
