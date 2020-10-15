@@ -104,6 +104,10 @@ class TerminalExtension extends Extension
     {
         $container = $this->getContainerBuilder();
 
+        if (!$container->getParameter('consoleMode')) {
+            return;
+        }
+
         $commandServices = $container->findByTag($this->prefix('command'));
         $lazyCommandMap  = [];
         $serviceIds      = [];
