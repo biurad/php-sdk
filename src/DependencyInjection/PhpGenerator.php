@@ -148,7 +148,7 @@ declare(strict_types=1);
                 } elseif ($name === ContainerBuilder::THIS_CONTAINER) {
                     $val = new Php\Literal('$this');
                 } else {
-                    $val = ContainerBuilder::literal('$this->?()', [Container::getMethodName($name)]);
+                    $val = ContainerBuilder::literal('$this->getService(?)', [$name]);
                 }
             }
         });
