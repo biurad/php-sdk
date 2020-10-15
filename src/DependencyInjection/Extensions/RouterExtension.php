@@ -22,20 +22,23 @@ use Biurad\Framework\DependencyInjection\XmlAdapter;
 use Biurad\Framework\ExtensionLoader;
 use Biurad\Framework\Router as FrameworkRouter;
 use Biurad\Http\Middlewares\AccessControlMiddleware;
+use Biurad\Http\Middlewares\CacheControlMiddleware;
 use Biurad\Http\Middlewares\ContentSecurityPolicyMiddleware;
 use Biurad\Http\Middlewares\CookiesMiddleware;
 use Biurad\Http\Middlewares\ErrorHandlerMiddleware;
 use Biurad\Http\Middlewares\HttpMiddleware;
 use Biurad\Http\Middlewares\SessionMiddleware;
+use Doctrine\Common\Annotations\Reader as AnnotationReader;
 use Flight\Routing\Middlewares\PathMiddleware;
 use Flight\Routing\RouteCollector;
+use Flight\Routing\RouteLoader;
 use Flight\Routing\RoutePipeline;
 use Nette;
 use Nette\DI\Config\Adapters\NeonAdapter;
 use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\ServiceDefinition;
 use Nette\DI\Definitions\Statement;
-use Nette\PhpGenerator\Literal;
+use Nette\PhpGenerator\PhpLiteral;
 use Nette\Schema\Expect;
 
 class RouterExtension extends Extension
@@ -47,6 +50,7 @@ class RouterExtension extends Extension
     {
         return Nette\Schema\Expect::structure([
             'namespace'             => Nette\Schema\Expect::string()->default(null),
+            'cache_routes'          => Nette\Schema\Expect::bool()->default(false),
             'matcher'               => Expect::anyOf(Expect::string(), Expect::object())->before(function ($value) {
                 return (\is_string($value) && \class_exists($value)) ? new Statement($value) : $value;
             }),
@@ -57,6 +61,9 @@ class RouterExtension extends Extension
                 return \is_string($value) ? [$value] : $value;
             }),
             'middlewares'           => Expect::array()->before(function ($value) {
+                return \is_string($value) ? [$value] : $value;
+            }),
+            'resources'             => Nette\Schema\Expect::list()->before(function ($value) {
                 return \is_string($value) ? [$value] : $value;
             }),
             'shortcut'              => Expect::arrayOf(
@@ -77,7 +84,7 @@ class RouterExtension extends Extension
                 if (!isset($values[0])) {
                     $values = [$values];
                 }
-                
+
                 foreach ($values ?? [] as $key => $value) {
                     if ('imports' === $key) {
                         $files = \array_map([$this, 'loadFromFile'], (array) $value);
@@ -107,33 +114,57 @@ class RouterExtension extends Extension
             $this->getFromConfig('shortcut')
         );
 
+        $collector = new Statement([new Reference($this->prefix('collector')), 'getCollection']);
+
+        // Added Annotations support
+        if (\interface_exists(AnnotationReader::class)) {
+            $loader = $container->register($this->prefix('loader'), RouteLoader::class)
+                ->setArgument('reader', new Reference(AnnotationReader::class))
+                ->addSetup('attachArray', [$this->getFromConfig('resources')]);
+
+            if ($this->getFromConfig('cache_routes') && $container->getParameter('productionMode')) {
+                $loader->addSetup('setCache');
+            }
+
+            $collector = new Statement([new Reference($this->prefix('loader')), 'load']);
+        }
+
         $router = $container->register($this->prefix('factory'), FrameworkRouter::class)
             ->setArgument('matcher', \is_string($matcher) ? new Reference($matcher) : $matcher)
             ->addSetup('addParameters', [$this->getFromConfig('requirements')])
             ->addSetup('addParameters', [$this->getFromConfig('defaults'), FrameworkRouter::TYPE_DEFAULT])
-            ->addSetup('?->addRoute(??->getCollection())', [
-                '@self', new Literal('...'), new Reference($this->prefix('collector')),
+            ->addSetup('?->addRoute(??)', [
+                '@self', new PhpLiteral('...'), $collector,
             ]);
 
         if (null !== $this->getFromConfig('namespace')) {
             $router->addSetup('setNamespace', [$this->getFromConfig('namespace')]);
         }
 
+        $middlewares = \array_merge(
+            [
+                PathMiddleware::class,
+                ErrorHandlerMiddleware::class,
+                CacheControlMiddleware::class,
+                ContentSecurityPolicyMiddleware::class,
+                SessionMiddleware::class,
+                CookiesMiddleware::class,
+                AccessControlMiddleware::class,
+            ],
+            $this->getFromConfig('middlewares'),
+            [HttpMiddleware::class],
+        );
+
         $container->register($this->prefix('pipeline'), RoutePipeline::class)
             ->addSetup('?->addMiddleware(...?)', [
                 '@self',
-                \array_merge(
-                    $this->getFromConfig('middlewares'),
-                    [
-                        PathMiddleware::class,
-                        HttpMiddleware::class,
-                        AccessControlMiddleware::class,
-                        ContentSecurityPolicyMiddleware::class,
-                        SessionMiddleware::class,
-                        CookiesMiddleware::class,
-                        ErrorHandlerMiddleware::class,
-                    ]
-                ),
+                \array_map(function ($middleware) {
+                    if (\is_string($middleware) && \class_exists($middleware)) {
+                        return new PhpLiteral($middleware . '::class');
+                    }
+
+                    return  $middleware;
+                }, $middlewares),
             ]);
 
         $container->addAlias('router', $this->prefix('pipeline'));
