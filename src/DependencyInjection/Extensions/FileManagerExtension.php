@@ -59,6 +59,10 @@ class FileManagerExtension extends Extension
         $connections = $this->getFromConfig('connections');
         $filesystems = [];
 
+        if (!class_exists(ConnectionFactory::class)) {
+            return;
+        }
+
         if (!empty($this->config['connections'])) {
             $filesystems = \array_map(function (string $name) {
                 $adapters = ['awss3', 'azure', 'dropbox', 'ftp', 'gcs', 'gridfs', 'local', 'rackspace', 'sftp', 'webdav', 'zip'];
@@ -92,6 +96,10 @@ class FileManagerExtension extends Extension
         $container  = $this->getContainerBuilder();
         $default    = $this->getFromConfig('default');
         $adapters   = [];
+
+        if (!class_exists(ConnectionFactory::class)) {
+            return;
+        }
 
         foreach ($container->findByTag(ConnectionFactory::FLY_ADAPTER_TAG) as $id => $name) {
             $adapter = $container->getDefinition($id)->getFactory();
