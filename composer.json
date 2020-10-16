@@ -48,7 +48,10 @@
     "suggest": {
         "biurad/cache": "To use the Cache Session Handler",
         "biurad/flysystem": "A FileManager for handling filesytem on local disk and cloud storage",
-        "symfony/web-link": "To use PSR-13 link in application"
+        "cycle/orm": "A DataMapper, ORM and Data Modelling engine based on Spiral Database",
+        "cycle/annotated": "To add Doctrine annotations support to Cycle ORM",
+        "symfony/web-link": "To use PSR-13 link in application",
+        "tharos/leanmapper": "An ORM based on powerful Dibi database abstraction library"
     },
     "autoload": {
         "psr-4": {
