@@ -54,9 +54,11 @@ class Router extends FlightRouter
      */
     protected function resolveController(ServerRequestInterface $request, RouteInterface &$route)
     {
+        $controller = $route->getController();
+
         // Disable or enable HTTP request method prefix for action.
         if (str_ends_with($route->getName(), '__restful')) {
-            if (\is_array($controller = $route->getController())) {
+            if (\is_array($controller)) {
                 $controller[1] = $this->getResourceMethod($request, $controller[1]);
             } elseif (is_string($controller) && class_exists($controller)) {
                 $controller = [$controller, $this->getResourceMethod($request, substr($route->getName(), -0, -9))];
