@@ -38,7 +38,7 @@ use Throwable;
  */
 class CacheCleanCommand extends Command
 {
-    public static $defaultName = 'cache:clean';
+    public static $defaultName = 'app:clean';
 
     /** @var DoctrineCache|FlushableCache */
     private $caching;
