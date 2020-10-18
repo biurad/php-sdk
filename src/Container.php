@@ -35,6 +35,7 @@ use ReflectionFunction;
 use ReflectionFunctionAbstract;
 use ReflectionMethod;
 use ReflectionType;
+use Throwable;
 
 /**
  * The dependency injection container default implementation.
@@ -88,7 +89,7 @@ class Container extends NetteContainer implements FactoryInterface
     {
         try {
             return $this->make($id);
-        } catch (ContainerResolutionException $e) {
+        } catch (Throwable $e) {
             throw new NotFoundServiceException(\sprintf('Service [%s] is not found in container', $id), 0, $e);
         }
     }
