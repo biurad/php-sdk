@@ -17,6 +17,7 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\DependencyInjection\Extensions;
 
+use Biurad\Framework\Debug\Route\RoutesPanel;
 use Biurad\Framework\DependencyInjection\Extension;
 use Biurad\Framework\DependencyInjection\XmlAdapter;
 use Biurad\Framework\ExtensionLoader;
@@ -140,19 +141,18 @@ class RouterExtension extends Extension
         if (null !== $this->getFromConfig('namespace')) {
             $router->addSetup('setNamespace', [$this->getFromConfig('namespace')]);
         }
+        $router->addSetup([new Reference('Tracy\Bar'), 'addPanel'], [new Statement(RoutesPanel::class, [$router])]);
 
         $middlewares = \array_merge(
             [
-                PathMiddleware::class,
                 ErrorHandlerMiddleware::class,
                 CacheControlMiddleware::class,
-                ContentSecurityPolicyMiddleware::class,
-                SessionMiddleware::class,
                 CookiesMiddleware::class,
+                SessionMiddleware::class,
                 AccessControlMiddleware::class,
             ],
             $this->getFromConfig('middlewares'),
-            [HttpMiddleware::class],
+            [PathMiddleware::class, ContentSecurityPolicyMiddleware::class, HttpMiddleware::class],
         );
 
         $container->register($this->prefix('pipeline'), RoutePipeline::class)

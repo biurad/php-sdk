@@ -17,6 +17,7 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Debug\Route;
 
+use Biurad\Http\Interfaces\Psr17Interface;
 use DivineNii\Invoker\CallableResolver;
 use Flight\Routing\Exceptions\MethodNotAllowedException;
 use Flight\Routing\Exceptions\RouteNotFoundException;
@@ -54,10 +55,10 @@ final class RoutesPanel implements Tracy\IBarPanel
     /** @var ReflectionClass|ReflectionFunction|ReflectionMethod|string */
     private $source;
 
-    public function __construct(Router $router, ServerRequestInterface $request)
+    public function __construct(Router $router, Psr17Interface $factory)
     {
         $this->router      = $router;
-        $this->httpRequest = $request;
+        $this->httpRequest = $factory::fromGlobalRequest();
     }
 
     /**
