@@ -19,11 +19,14 @@ namespace Biurad\Framework\DependencyInjection\Extensions;
 
 use Biurad\Framework\Commands\AboutCommand;
 use Biurad\Framework\Commands\CacheCleanCommand;
+use Biurad\Framework\Commands\RouteListCommand;
 use Biurad\Framework\Commands\ServerRunCommand;
 use Biurad\Framework\Commands\ServerStartCommand;
 use Biurad\Framework\Commands\ServerStopCommand;
 use Biurad\Framework\ConsoleApp;
 use Biurad\Framework\DependencyInjection\Extension;
+use Flight\Routing\Interfaces\RouteCollectorInterface;
+use Flight\Routing\RouteLoader;
 use Nette;
 use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\Statement;
@@ -83,6 +86,14 @@ class TerminalExtension extends Extension
                 [
                     1 => $container->getParameter('tempDir') . '/cache',
                     2 => $container->getParameter('tempDir') . '/logs',
+                ]
+            ),
+            new Statement(
+                RouteListCommand::class,
+                [
+                    $container->getByType(RouteLoader::class)
+                        ? new Reference(RouteLoader::class)
+                        : new Reference(RouteCollectorInterface::class)
                 ]
             ),
             new Statement(ServerRunCommand::class, [$this->config->server_root, $container->getParameter('envMode')]),
