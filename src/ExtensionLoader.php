@@ -84,6 +84,7 @@ class ExtensionLoader
         'routing'       => Biurad\Framework\DependencyInjection\Extensions\RouterExtension::class,
         'console'       => Biurad\Framework\DependencyInjection\Extensions\TerminalExtension::class,
         'filesystem'    => Biurad\Framework\DependencyInjection\Extensions\FileManagerExtension::class,
+        'leanmapper'    => [Biurad\Framework\DependencyInjection\Extensions\LeanMapperExtension::class, ['%appDir%']],
         'tracy'         => [Tracy\Bridges\Nette\TracyExtension::class, ['%debugMode%', '%consoleMode%']],
     ];
 
