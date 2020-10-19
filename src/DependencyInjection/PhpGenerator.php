@@ -114,13 +114,13 @@ declare(strict_types=1);
     public function generateMethod(Definitions\Definition $def): Nette\PhpGenerator\Method
     {
         $name     = $def->getName();
-        $comment  = "This method is an instance of %s.\n\nThe instance can be accessed by it's name in lower case,";
-        $comment2 = 'thus `%s`, using container get or make methods.';
+        $comment  = 'This service can be accessed by it\'s name in lower case,';
+        $comment2 = "thus `%s`, using container get or make methods.\n\n@return %s";
 
         try {
             $method = new Nette\PhpGenerator\Method(Container::getMethodName($name));
             $method->setProtected();
-            $method->setComment(\sprintf($comment . "\n" . $comment2, $def->getType(), $name));
+            $method->setComment(\sprintf($comment . "\n" . $comment2, $name, $def->getType()));
             $method->setReturnType($def->getType());
             $def->generateMethod($method, $this);
 
