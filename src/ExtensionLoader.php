@@ -85,6 +85,7 @@ class ExtensionLoader
         'console'       => Biurad\Framework\DependencyInjection\Extensions\TerminalExtension::class,
         'filesystem'    => Biurad\Framework\DependencyInjection\Extensions\FileManagerExtension::class,
         'leanmapper'    => [Biurad\Framework\DependencyInjection\Extensions\LeanMapperExtension::class, ['%appDir%']],
+        'spiraldb'      => [Biurad\Framework\DependencyInjection\Extensions\SpiralDatabaseExtension::class, ['%appDir%', '%tempDir%/migrations']],
         'tracy'         => [Tracy\Bridges\Nette\TracyExtension::class, ['%debugMode%', '%consoleMode%']],
     ];
 

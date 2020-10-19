@@ -43,7 +43,10 @@
         "phpunit/phpunit": "^8.5 || ^9.0",
         "psr/cache": "^1.0",
         "squizlabs/php_codesniffer": "^3.5",
-        "vimeo/psalm": "^3.11"
+        "vimeo/psalm": "^3.11",
+        "cycle/annotated": "^2.0",
+        "cycle/migrations": "^1.0",
+        "spiral/migrations": "^2.1",
         "tharos/leanmapper": "dev-develop"
     },
     "suggest": {
@@ -51,7 +54,8 @@
         "biurad/flysystem": "A FileManager for handling filesytem on local disk and cloud storage",
         "cycle/orm": "A DataMapper, ORM and Data Modelling engine based on Spiral Database",
         "cycle/annotated": "To add Doctrine annotations support to Cycle ORM",
-        "symfony/web-link": "To use PSR-13 link in application",
+        "cycle/migrations": "For Automated migrations on commands using Cycle ORM",
+        "spiral/migrations": "A Database migrations, migration scaffolding for Spiral Database",
         "tharos/leanmapper": "An ORM based on powerful Dibi database abstraction library"
     },
     "autoload": {
