@@ -24,7 +24,6 @@ use Biurad\Http\Factories\GuzzleHttpPsr7Factory;
 use Biurad\Http\Interfaces\CspInterface;
 use Biurad\Http\Middlewares\CacheControlMiddleware;
 use Biurad\Http\Middlewares\HttpMiddleware;
-use Biurad\Http\Response;
 use Biurad\Http\Session;
 use Biurad\Http\Sessions\HandlerFactory;
 use Biurad\Http\Sessions\Storage\NativeSessionStorage;
@@ -32,11 +31,8 @@ use Biurad\Http\Strategies\AccessControlPolicy;
 use Biurad\Http\Strategies\ContentSecurityPolicy;
 use Biurad\Http\Strategies\QueueingCookie;
 use Nette;
-use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\Statement;
 use Nette\Schema\Expect;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 
 class HttpExtension extends Extension
 {
@@ -106,7 +102,7 @@ class HttpExtension extends Extension
                 'storage'    => Nette\Schema\Expect::string()->nullable(),
                 'options'    => Nette\Schema\Expect::structure([
                     'name'            => Nette\Schema\Expect::string()->default('nette-debug'),
-                    'cookie_lifetime' => Nette\Schema\Expect::int()->default(7200),
+                    'cookie_lifetime' => Nette\Schema\Expect::int()->default((int) \ini_get('session.gc_maxlifetime')),
                     'cookie_path'     => Nette\Schema\Expect::string()->default('/'),
                     'cookie_domain'   => Nette\Schema\Expect::string()->default(''),
                     'cookie_samesite' => Nette\Schema\Expect::int()->default('lax'),
@@ -123,15 +119,6 @@ class HttpExtension extends Extension
         $container = $this->getContainerBuilder();
         $container->register($this->prefix('factory'), GuzzleHttpPsr7Factory::class);
 
-        $container->register(
-            $this->prefix('request'),
-            new Statement([new Reference($this->prefix('factory')), 'fromGlobalRequest'])
-        )
-        ->setType(ServerRequestInterface::class);
-
-        $container->register($this->prefix('response'), Response::class)
-            ->setType(ResponseInterface::class);
-
         $container->register($this->prefix('access_control'), AccessControlPolicy::class)
             ->setArgument('options', $this->getFromConfig('headers.cors'));
 
@@ -143,7 +130,10 @@ class HttpExtension extends Extension
         }
 
         $container->register($this->prefix('middleware'), HttpMiddleware::class)
-            ->setArgument('config', array_slice($this->getConfig(), 1, -1));
+            ->setArgument('config', \array_intersect_key(
+                $this->config,
+                \array_flip(['policies', 'headers'])
+            ));
 
         $container->register($this->prefix('cache_control'), CacheControlMiddleware::class)
             ->setArgument('config', $this->getFromConfig('caching'));
