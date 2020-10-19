@@ -93,7 +93,7 @@ class TerminalExtension extends Extension
                 [
                     $container->getByType(RouteLoader::class)
                         ? new Reference(RouteLoader::class)
-                        : new Reference(RouteCollectorInterface::class)
+                        : new Reference(RouteCollectorInterface::class),
                 ]
             ),
             new Statement(ServerRunCommand::class, [$this->config->server_root, $container->getParameter('envMode')]),

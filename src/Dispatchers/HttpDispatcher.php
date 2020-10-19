@@ -45,7 +45,7 @@ class HttpDispatcher implements DispatcherInterface
     public function serve(HttpKernelInterface $kernel, ServerRequestInterface $request = null)
     {
         $container = $kernel->getContainer();
-        $pipeline = $container->get(RoutePipeline::class);
+        $pipeline  = $container->get(RoutePipeline::class);
 
         // On demand to save some memory.
         process:

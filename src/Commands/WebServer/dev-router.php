@@ -1,35 +1,38 @@
 <?php
 
+declare(strict_types=1);
+
 /*
- * This file implements rewrite rules for PHP built-in web server.
+ * This file is part of Biurad opensource projects.
  *
- * See: http://www.php.net/manual/en/features.commandline.webserver.php
+ * PHP version 7.2 and above required
  *
- * If you have custom directory layout, then you have to write your own router
- * and pass it as a value to 'router' option of server:run command.
+ * @author    Divine Niiquaye Ibok <divineibok@gmail.com>
+ * @copyright 2019 Biurad Group (https://biurad.com/)
+ * @license   https://opensource.org/licenses/BSD-3-Clause License
  *
- * @author Michał Pipa <michal.pipa.xsolve@gmail.com>
- * @author Albert Jessurum <ajessu@gmail.com>
+ * For the full copyright and license information, please view the LICENSE
+ * file that was distributed with this source code.
  */
 
 // Workaround https://bugs.php.net/64566
-if (ini_get('auto_prepend_file') && !in_array(realpath(ini_get('auto_prepend_file')), get_included_files(), true)) {
-    require ini_get('auto_prepend_file');
+if (\ini_get('auto_prepend_file') && !\in_array(\realpath(\ini_get('auto_prepend_file')), \get_included_files(), true)) {
+    require \ini_get('auto_prepend_file');
 }
 
-if (is_file($_SERVER['DOCUMENT_ROOT'].DIRECTORY_SEPARATOR.$_SERVER['SCRIPT_NAME'])) {
+if (\is_file($_SERVER['DOCUMENT_ROOT'] . \DIRECTORY_SEPARATOR . $_SERVER['SCRIPT_NAME'])) {
     return false;
 }
 
-$script = isset($_ENV['APP_FRONT_CONTROLLER']) ? $_ENV['APP_FRONT_CONTROLLER'] : 'index.php';
+$script = $_ENV['APP_FRONT_CONTROLLER'] ?? 'index.php';
 
-$_SERVER = array_merge($_SERVER, $_ENV);
-$_SERVER['SCRIPT_FILENAME'] = $_SERVER['DOCUMENT_ROOT'].DIRECTORY_SEPARATOR.$script;
+$_SERVER                    = \array_merge($_SERVER, $_ENV);
+$_SERVER['SCRIPT_FILENAME'] = $_SERVER['DOCUMENT_ROOT'] . \DIRECTORY_SEPARATOR . $script;
 
 // Since we are rewriting to app_dev.php, adjust SCRIPT_NAME and PHP_SELF accordingly
-$_SERVER['SCRIPT_NAME'] = DIRECTORY_SEPARATOR.$script;
-$_SERVER['PHP_SELF'] = DIRECTORY_SEPARATOR.$script;
+$_SERVER['SCRIPT_NAME'] = \DIRECTORY_SEPARATOR . $script;
+$_SERVER['PHP_SELF']    = \DIRECTORY_SEPARATOR . $script;
 
 require $script;
 
-error_log(sprintf('%s:%d [%d]: %s', $_SERVER['REMOTE_ADDR'], $_SERVER['REMOTE_PORT'], http_response_code(), $_SERVER['REQUEST_URI']), 4);
+\error_log(\sprintf('%s:%d [%d]: %s', $_SERVER['REMOTE_ADDR'], $_SERVER['REMOTE_PORT'], \http_response_code(), $_SERVER['REQUEST_URI']), 4);

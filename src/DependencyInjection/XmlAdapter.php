@@ -28,6 +28,7 @@ use Nette\DI;
 use Nette\InvalidStateException;
 use ReflectionObject;
 use RuntimeException;
+use stdClass;
 use XMLWriter;
 
 /**
@@ -51,9 +52,9 @@ final class XmlAdapter implements Di\Config\Adapter
      * @param null|callable|string $schemaOrCallable An XSD schema file path, a callable, or null to disable validation
      *
      * @throws InvalidStateException When parsing of XML file returns error
-     * @throws InvalidXmlException  When parsing of XML with schema or callable produces any errors
-     *                              unrelated to the XML parsing itself
-     * @throws RuntimeException     When DOM extension is missing
+     * @throws InvalidXmlException   When parsing of XML with schema or callable produces any errors
+     *                               unrelated to the XML parsing itself
+     * @throws RuntimeException      When DOM extension is missing
      *
      * @return DOMDocument
      */
@@ -230,8 +231,8 @@ final class XmlAdapter implements Di\Config\Adapter
         $data = \array_map(function ($value) {
             $value = $this->resolveClassObject($value);
 
-            if (is_array($value)) {
-                return array_map([$this, 'resolveClassObject'], $value);
+            if (\is_array($value)) {
+                return \array_map([$this, 'resolveClassObject'], $value);
             }
 
             return $value;
@@ -277,7 +278,7 @@ final class XmlAdapter implements Di\Config\Adapter
             }
 
             if ($branchType === 'numeric') {
-                if (\is_array($value) || $value instanceof \stdClass) {
+                if (\is_array($value) || $value instanceof stdClass) {
                     $this->addBranch($branchName, (array) $value, $writer);
                 } else {
                     $writer->writeElement($branchName, $this->xmlize($value));
@@ -397,7 +398,7 @@ final class XmlAdapter implements Di\Config\Adapter
             return $properties;
         }
 
-        if ($value instanceof \stdClass) {
+        if ($value instanceof stdClass) {
             return (array) $value;
         }
 

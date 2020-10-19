@@ -37,7 +37,7 @@ class FrameworkBundle extends Bundle
     {
         $kernel   = $this->container->get(HttpKernelInterface::class);
         $request  = GuzzleHttpPsr7Factory::fromGlobalRequest();
-        
+
         $response = $kernel->serve($request);
 
         if ($response instanceof ResponseInterface) {

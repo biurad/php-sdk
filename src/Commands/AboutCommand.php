@@ -19,11 +19,13 @@ namespace Biurad\Framework\Commands;
 
 use Biurad\Framework\ConsoleApp;
 use Biurad\Framework\Interfaces\FactoryInterface;
+use DateTime;
+use Locale;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Helper\TableSeparator;
+use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * A console command to display information about the current installation.
@@ -37,11 +39,12 @@ class AboutCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected function configure()
+    protected function configure(): void
     {
         $this
             ->setDescription('Displays information about the current project')
-            ->setHelp(<<<'EOT'
+            ->setHelp(
+                <<<'EOT'
 The <info>%command.name%</info> command displays information about the current BiuradPHP project.
 
 The <info>PHP</info> section displays important configuration that could affect your application. The values might
@@ -93,23 +96,23 @@ EOT
             new TableSeparator(),
             ['<info>PHP</>'],
             new TableSeparator(),
-            ['Version', PHP_VERSION],
-            ['Architecture', (PHP_INT_SIZE * 8).' bits'],
-            ['Intl locale', class_exists('Locale', false) && \Locale::getDefault() ? \Locale::getDefault() : 'n/a'],
-            ['Timezone', date_default_timezone_get().' (<comment>'.(new \DateTime())->format(\DateTime::W3C).'</>)'],
-            ['OPcache', \extension_loaded('Zend OPcache') && filter_var(ini_get('opcache.enable'), FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false'],
-            ['APCu', \extension_loaded('apcu') && filter_var(ini_get('apc.enabled'), FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false'],
+            ['Version', \PHP_VERSION],
+            ['Architecture', (\PHP_INT_SIZE * 8) . ' bits'],
+            ['Intl locale', \class_exists('Locale', false) && Locale::getDefault() ? Locale::getDefault() : 'n/a'],
+            ['Timezone', \date_default_timezone_get() . ' (<comment>' . (new DateTime())->format(DateTime::W3C) . '</>)'],
+            ['OPcache', \extension_loaded('Zend OPcache') && \filter_var(\ini_get('opcache.enable'), \FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false'],
+            ['APCu', \extension_loaded('apcu') && \filter_var(\ini_get('apc.enabled'), \FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false'],
             ['Xdebug', \extension_loaded('xdebug') ? 'true' : 'false'],
         ];
 
         if ($dotenv = self::getDotenvVars()) {
-            $rows = array_merge($rows, [
+            $rows = \array_merge($rows, [
                 new TableSeparator(),
                 ['<info>Environment (.env)</>'],
                 new TableSeparator(),
-            ], array_map(function ($value, $name) {
+            ], \array_map(function ($value, $name) {
                 return [$name, $value];
-            }, $dotenv, array_keys($dotenv)));
+            }, $dotenv, \array_keys($dotenv)));
         }
 
         $this->io->table([], $rows);
@@ -120,12 +123,13 @@ EOT
     private static function getDotenvVars(): array
     {
         $vars = [];
-        if (!$dotenv = getenv('SYMFONY_DOTENV_VARS')) {
+
+        if (!$dotenv = \getenv('SYMFONY_DOTENV_VARS')) {
             return $vars;
         }
 
-        foreach (explode(',', $dotenv) as $name) {
-            if ('' !== $name && false !== $value = getenv($name)) {
+        foreach (\explode(',', $dotenv) as $name) {
+            if ('' !== $name && false !== $value = \getenv($name)) {
                 $vars[$name] = $value;
             }
         }

@@ -17,8 +17,9 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Event;
 
-use Psr\Http\Message\ServerRequestInterface as Request;
 use Biurad\Framework\Interfaces\HttpKernelInterface;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Throwable;
 
 /**
  * Allows to create a response for a thrown exception.
@@ -42,14 +43,14 @@ final class ExceptionEvent extends RequestEvent
      */
     private $allowCustomResponseCode = false;
 
-    public function __construct(HttpKernelInterface $kernel, Request $request, \Throwable $e)
+    public function __construct(HttpKernelInterface $kernel, Request $request, Throwable $e)
     {
         parent::__construct($kernel, $request);
 
         $this->setThrowable($e);
     }
 
-    public function getThrowable(): \Throwable
+    public function getThrowable(): Throwable
     {
         return $this->throwable;
     }
@@ -59,7 +60,7 @@ final class ExceptionEvent extends RequestEvent
      *
      * This exception will be thrown if no response is set in the event.
      */
-    public function setThrowable(\Throwable $exception): void
+    public function setThrowable(Throwable $exception): void
     {
         $this->throwable = $exception;
     }

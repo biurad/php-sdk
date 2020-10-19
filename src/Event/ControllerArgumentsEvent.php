@@ -35,6 +35,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 final class ControllerArgumentsEvent extends KernelEvent
 {
     private $controller;
+
     private $arguments;
 
     public function __construct(HttpKernelInterface $kernel, callable $controller, array $arguments, Request $request)
@@ -42,7 +43,7 @@ final class ControllerArgumentsEvent extends KernelEvent
         parent::__construct($kernel, $request);
 
         $this->controller = $controller;
-        $this->arguments = $arguments;
+        $this->arguments  = $arguments;
     }
 
     public function getController(): callable
@@ -50,7 +51,7 @@ final class ControllerArgumentsEvent extends KernelEvent
         return $this->controller;
     }
 
-    public function setController(callable $controller)
+    public function setController(callable $controller): void
     {
         $this->controller = $controller;
     }
@@ -60,7 +61,7 @@ final class ControllerArgumentsEvent extends KernelEvent
         return $this->arguments;
     }
 
-    public function setArguments(array $arguments)
+    public function setArguments(array $arguments): void
     {
         $this->arguments = $arguments;
     }

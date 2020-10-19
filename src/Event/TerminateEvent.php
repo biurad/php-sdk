@@ -17,9 +17,9 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Event;
 
-use Psr\Http\Message\ServerRequestInterface as Request;
-use Psr\Http\Message\ResponseInterface as Response;
 use Biurad\Framework\Interfaces\HttpKernelInterface;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
 
 /**
  * Allows to execute logic after a response was sent.

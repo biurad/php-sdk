@@ -18,6 +18,7 @@ declare(strict_types=1);
 namespace Biurad\Framework\Debug\Route;
 
 use Biurad\Http\Interfaces\Psr17Interface;
+use Closure;
 use DivineNii\Invoker\CallableResolver;
 use Flight\Routing\Exceptions\MethodNotAllowedException;
 use Flight\Routing\Exceptions\RouteNotFoundException;
@@ -31,7 +32,6 @@ use ReflectionClass;
 use ReflectionFunction;
 use ReflectionMethod;
 use Tracy;
-use Tracy\Dumper;
 
 /**
  * Routing debugger for Debug Bar.
@@ -101,7 +101,6 @@ final class RoutesPanel implements Tracy\IBarPanel
         $request = $this->httpRequest;
 
         foreach ($router->getRoutes() as $route) {
-
         }
 
         try {
@@ -115,14 +114,14 @@ final class RoutesPanel implements Tracy\IBarPanel
         }
 
         /** @var Route $route */
-        $route = $request->getAttribute(Route::class);
+        $route      = $request->getAttribute(Route::class);
         $controller = $route->getController();
 
         if ($controller instanceof RequestHandlerInterface) {
             $controller = \get_class($controller) . '@' . 'handle';
-        } elseif (is_string($controller) && \function_exists($controller)) {
+        } elseif (\is_string($controller) && \function_exists($controller)) {
             $controller = $controller;
-        } elseif (\is_callable($controller) && !$controller instanceof \Closure) {
+        } elseif (\is_callable($controller) && !$controller instanceof Closure) {
             $controller = (\is_object($controller[0]) ? \get_class($controller[0]) : $controller[0]) . '@' . $controller[1];
         }
 
@@ -146,12 +145,12 @@ final class RoutesPanel implements Tracy\IBarPanel
 
     private function findSource(): void
     {
-        $params    = $this->matched;
-        $presenter = $params['presenter'] ?? '';
+        $params           = $this->matched;
+        $presenter        = $params['presenter'] ?? '';
         [$class, $method] = [$presenter, null];
 
         if (\is_string($presenter) && 1 === \preg_match(CallableResolver::CALLABLE_PATTERN, $presenter, $matches)) {
-            var_dump($matches);
+            \var_dump($matches);
             [, $class, $method] = $matches;
         }
 

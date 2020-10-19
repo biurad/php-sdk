@@ -18,9 +18,9 @@ declare(strict_types=1);
 namespace Biurad\Framework\DependencyInjection\Extensions;
 
 use Biurad\Framework\DependencyInjection\Extension;
-use DivineNii\Invoker\Interfaces\ArgumentValueResolverInterface;
 use DivineNii\Invoker\Interfaces\InvokerInterface;
 use DivineNii\Invoker\Invoker;
+use Nette\DI\Definitions\Reference;
 
 class InvokerExtension extends Extension
 {
@@ -41,12 +41,17 @@ class InvokerExtension extends Extension
     public function beforeCompile(): void
     {
         $container = $this->getContainerBuilder();
-        $type      = $container->findByType(ArgumentValueResolverInterface::class);
         $invoker   = $container->getDefinitionByType(InvokerInterface::class);
 
+        $argumentServices = $container->findByTag('invoker.argument');
+
+        \uasort($argumentServices, function ($a, $b) {
+            return !(\is_int($a) && \is_int($b)) ? 0 : $b <=> $a;
+        });
+
         // Register as services
-        foreach ($this->getServiceDefinitionsFromDefinitions($type) as $definition) {
-            $invoker->addSetup('?->getArgumentResolver()->prependResolver(?)', ['@self', $definition]);
+        foreach ($argumentServices as $id => $value) {
+            $invoker->addSetup('?->getArgumentResolver()->prependResolver(?)', ['@self', new Reference($id)]);
         }
     }
 }

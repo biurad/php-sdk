@@ -17,8 +17,8 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Event;
 
-use Psr\Http\Message\ServerRequestInterface as Request;
 use Biurad\Framework\Interfaces\HttpKernelInterface;
+use Psr\Http\Message\ServerRequestInterface as Request;
 
 /**
  * Allows filtering of a controller callable.

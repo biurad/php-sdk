@@ -59,7 +59,7 @@ class FileManagerExtension extends Extension
         $connections = $this->getFromConfig('connections');
         $filesystems = [];
 
-        if (!class_exists(ConnectionFactory::class)) {
+        if (!\class_exists(ConnectionFactory::class)) {
             return;
         }
 
@@ -97,7 +97,7 @@ class FileManagerExtension extends Extension
         $default    = $this->getFromConfig('default');
         $adapters   = [];
 
-        if (!class_exists(ConnectionFactory::class)) {
+        if (!\class_exists(ConnectionFactory::class)) {
             return;
         }
 

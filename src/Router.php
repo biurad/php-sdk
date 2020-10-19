@@ -60,8 +60,8 @@ class Router extends FlightRouter
         if (str_ends_with($route->getName(), '__restful')) {
             if (\is_array($controller)) {
                 $controller[1] = $this->getResourceMethod($request, $controller[1]);
-            } elseif (is_string($controller) && class_exists($controller)) {
-                $controller = [$controller, $this->getResourceMethod($request, substr($route->getName(), -0, -9))];
+            } elseif (\is_string($controller) && \class_exists($controller)) {
+                $controller = [$controller, $this->getResourceMethod($request, \substr($route->getName(), -0, -9))];
             }
         }
 
@@ -113,7 +113,7 @@ class Router extends FlightRouter
 
     /**
      * @param ServerRequestInterface $request
-     * @param string $name
+     * @param string                 $name
      */
     private function getResourceMethod(ServerRequestInterface $request, string $name): string
     {
