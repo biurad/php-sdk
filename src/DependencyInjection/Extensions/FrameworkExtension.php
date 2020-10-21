@@ -41,7 +41,6 @@ class FrameworkExtension extends Extension
         return Nette\Schema\Expect::structure([
             'content_security_policy' => Nette\Schema\Expect::bool(false),
             'error_template'          => Nette\Schema\Expect::string(),
-            'annotations'             => Nette\Schema\Expect::listOf(Expect::string()->assert('class_exists')),
             'dispatchers'             => Nette\Schema\Expect::arrayOf(Expect::string()->assert('class_exists')),
             'imports'                 => Nette\Schema\Expect::list(),
             'cache_driver'            => Nette\Schema\Expect::string()->default(\extension_loaded('apcu') ? 'apcu' : 'array'),
@@ -90,27 +89,6 @@ class FrameworkExtension extends Extension
             $framework->addSetup('addDispatcher', [new Statement($dispatcher)]);
         }
 
-        $container->addAlias('events', $this->prefix('dispatcher'));
         $container->addAlias('application', $this->prefix('app'));
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function afterCompile(ClassTypeGenerator $class): void
-    {
-        $init = $this->initialization ?? $class->getMethod('initialize');
-
-        if (empty($this->config['annotations'])) {
-            return;
-        }
-
-        $init->addBody(
-            '// Register all annotations for framework.
-foreach (? as $annotation) {
-    $this->get($annotation)->register($this->createInstance(?)); // For Runtime.
-}',
-            [$this->config['annotations'], AnnotationLoader::class]
-        );
     }
 }

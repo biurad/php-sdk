@@ -30,12 +30,23 @@ use Flight\Routing\RouteLoader;
 use Nette;
 use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\Statement;
-use Nette\Schema\Expect;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\CommandLoader\ContainerCommandLoader;
 use Symfony\Component\Console\EventListener\ErrorListener;
 
 class TerminalExtension extends Extension
 {
+    /** @var string|string[] */
+    private $scanDirs;
+
+    /**
+     * @param string|string[] $scanDirs
+     */
+    public function __construct($scanDirs = [])
+    {
+        $this->scanDirs = $scanDirs;
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -44,28 +55,11 @@ class TerminalExtension extends Extension
         $webRoot = $this->getContainerBuilder()->getParameter('wwwDir');
 
         return Nette\Schema\Expect::structure([
-            'server_root'   => Nette\Schema\Expect::string()->default($webRoot),
-            'commands'      => Nette\Schema\Expect::arrayOf(
-                Expect::structure([
-                    'class' => Nette\Schema\Expect::string()->assert('class_exists'),
-                    'tags'  => Nette\Schema\Expect::array()->before(function ($value) {
-                        return \is_string($value) ? [$value => 'none'] : $value;
-                    }),
-                ])->castTo('array')
-            ),
-        ])->before(function ($value) {
-            if (isset($value['commands'])) {
-                $new = [];
-
-                foreach ($value['commands'] as $index => $attrs) {
-                    $new['command.' . $index] = $attrs;
-                }
-                unset($value['commands']);
-                $value['commands'] = $new;
-            }
-
-            return $value;
-        });
+            'server_root' => Nette\Schema\Expect::string()->default($webRoot),
+            'scanDirs'    => Nette\Schema\Expect::list()->default([$this->scanDirs])->before(function ($value) {
+                return \is_string($value) ? [$value] : $value;
+            }),
+        ])->castTo('array');
     }
 
     /**
@@ -74,12 +68,12 @@ class TerminalExtension extends Extension
     public function loadConfiguration(): void
     {
         $container = $this->getContainerBuilder();
+        $index     = 1;
 
         if (!$container->getParameter('consoleMode')) {
             return;
         }
 
-        $this->loadDefinitionsFromConfig($this->config->commands ?? []);
         $commands = $this->addCommands([
             new Statement(
                 CacheCleanCommand::class,
@@ -106,6 +100,13 @@ class TerminalExtension extends Extension
         $container->register($this->prefix('app'), ConsoleApp::class)
             ->addSetup('setCommandLoader')
             ->addSetup('addCommands', [$commands]);
+
+        $commands = $this->findClasses($this->getFromConfig('scanDirs'), Command::class);
+
+        foreach ($commands as $command) {
+            $container->register($this->prefix('command.' . $index++), $command)
+                ->addTag('console.command', $command::getDefaultName());
+        }
     }
 
     /**

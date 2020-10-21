@@ -70,8 +70,6 @@ class ExtensionLoader
     private $extensions = [
         'php'           => Nette\DI\Extensions\PhpExtension::class,
         'annotation'    => Biurad\Framework\DependencyInjection\Extensions\AnnotationsExtension::class,
-        'events'        => [BiuradPHP\Events\Bridges\EventsExtension::class, ['%debugMode%']],
-        'caching'       => BiuradPHP\Cache\Bridges\CacheExtension::class,
         'constants'     => Nette\DI\Extensions\ConstantsExtension::class,
         'decorator'     => Nette\DI\Extensions\DecoratorExtension::class,
         'di'            => [Nette\DI\Extensions\DIExtension::class, ['%debugMode%']],
@@ -83,7 +81,7 @@ class ExtensionLoader
         'events'        => [Biurad\Framework\DependencyInjection\Extensions\EventDispatcherExtension::class, ['%appDir%']],
         'http'          => [Biurad\Framework\DependencyInjection\Extensions\HttpExtension::class, ['%tempDir%/session']],
         'routing'       => Biurad\Framework\DependencyInjection\Extensions\RouterExtension::class,
-        'console'       => Biurad\Framework\DependencyInjection\Extensions\TerminalExtension::class,
+        'console'       => [Biurad\Framework\DependencyInjection\Extensions\TerminalExtension::class, ['%appDir%']],
         'filesystem'    => Biurad\Framework\DependencyInjection\Extensions\FileManagerExtension::class,
         'leanmapper'    => [Biurad\Framework\DependencyInjection\Extensions\LeanMapperExtension::class, ['%appDir%']],
         'spiraldb'      => [Biurad\Framework\DependencyInjection\Extensions\SpiralDatabaseExtension::class, ['%appDir%', '%tempDir%/migrations']],

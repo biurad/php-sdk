@@ -25,7 +25,9 @@ use Nette\DI\Definitions\LocatorDefinition;
 use Nette\DI\Definitions\ServiceDefinition;
 use Nette\DI\Definitions\Statement;
 use Nette\DI\Resolver;
+use Nette\Loaders\RobotLoader;
 use Nette\Utils\Strings;
+use ReflectionClass;
 
 /**
  * Configurator compiling extension.
@@ -140,5 +142,43 @@ abstract class Extension extends NetteCompilerExtension
         $serviceDefinitions = \array_unique($serviceDefinitions, \SORT_REGULAR);
 
         return $serviceDefinitions;
+    }
+
+    /**
+     * @param string[] $scanDirs
+     * @param string $className
+     *
+     * @return string[]
+     */
+    protected function findClasses(array $scanDirs, string $className): array
+    {
+        $classes = [];
+
+        if (!empty($scanDirs)) {
+            $robot = new RobotLoader();
+
+            // back compatibility to robot loader of version  < 3.0
+            if (\method_exists($robot, 'setCacheStorage')) {
+                $robot->setCacheStorage(new \Nette\Caching\Storages\DevNullStorage());
+            }
+
+            $robot->addDirectory(...$scanDirs);
+            $robot->acceptFiles = ['*.php'];
+            $robot->rebuild();
+            $classes = \array_keys($robot->getIndexedClasses());
+        }
+
+        $foundClasses = [];
+
+        foreach (\array_unique($classes) as $class) {
+            if (\class_exists($class)
+                && ($rc = new ReflectionClass($class)) && $rc->isSubclassOf($className)
+                && !$rc->isAbstract()
+            ) {
+                $foundClasses[] = $rc->getName();
+            }
+        }
+
+        return $foundClasses;
     }
 }

@@ -20,10 +20,8 @@ namespace Biurad\Framework\DependencyInjection\Extensions;
 use Biurad\Framework\DependencyInjection\Extension;
 use Dibi\Event;
 use Nette;
-use Nette\Loaders\RobotLoader;
 use Nette\Schema\Expect;
 use Nette\Utils\Strings;
-use ReflectionClass;
 
 class LeanMapperExtension extends Extension
 {
@@ -92,7 +90,13 @@ class LeanMapperExtension extends Extension
         $index     = 1;
         $flags     = 0;
 
-        foreach ($this->findRepositories($this->getFromConfig('scanDirs')) as $repositoryClass) {
+        if (!\class_exists('LeanMapper\Repository')) {
+            return;
+        }
+
+        $repositories = $this->findClasses($this->getFromConfig('scanDirs'), 'LeanMapper\Repository');
+
+        foreach ($repositories as $repositoryClass) {
             $container->register($this->prefix('table.' . $index++), $repositoryClass);
         }
 
@@ -123,40 +127,5 @@ class LeanMapperExtension extends Extension
                 $connection->addSetup('?->onEvent[] = ?', ['@self', [$fileLogger, 'logEvent']]);
             }
         }
-    }
-
-    /**
-     * @param string[] $scanDirs
-     */
-    private function findRepositories(array $scanDirs)
-    {
-        $classes = [];
-
-        if (!empty($scanDirs)) {
-            $robot = new RobotLoader();
-
-            // back compatibility to robot loader of version  < 3.0
-            if (\method_exists($robot, 'setCacheStorage')) {
-                $robot->setCacheStorage(new Nette\Caching\Storages\DevNullStorage());
-            }
-
-            $robot->addDirectory(...$scanDirs);
-            $robot->acceptFiles = ['*.php'];
-            $robot->rebuild();
-            $classes = \array_keys($robot->getIndexedClasses());
-        }
-
-        $repositories = [];
-
-        foreach (\array_unique($classes) as $class) {
-            if (\class_exists($class)
-                && ($rc = new ReflectionClass($class)) && $rc->isSubclassOf('LeanMapper\Repository')
-                && !$rc->isAbstract()
-            ) {
-                $repositories[] = $rc->getName();
-            }
-        }
-
-        return $repositories;
     }
 }

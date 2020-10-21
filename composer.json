@@ -28,6 +28,7 @@
         "biurad/cache": "1.x-dev",
         "biurad/events-bus": "1.x-dev",
         "biurad/http-galaxy": "1.x-dev",
+        "biurad/templating": "1.x-dev",
         "divineniiquaye/flight-routing": "1.x-dev",
         "doctrine/annotations": "^1.10",
         "nette/di": "^3.0",
@@ -45,7 +46,6 @@
         "squizlabs/php_codesniffer": "^3.5",
         "vimeo/psalm": "^3.11",
         "biurad/flysystem": "1.x-dev",
-        "biurad/templating": "1.x-dev",
         "cycle/annotated": "^2.0",
         "cycle/migrations": "^1.0",
         "spiral/migrations": "^2.1",
@@ -58,6 +58,7 @@
         "cycle/orm": "A DataMapper, ORM and Data Modelling engine based on Spiral Database",
         "cycle/annotated": "To add Doctrine annotations support to Cycle ORM",
         "cycle/migrations": "For Automated migrations on commands using Cycle ORM",
+        "nextras/orm": "A Lightweight and high-performance ORM with clean object design.",
         "spiral/migrations": "A Database migrations, migration scaffolding for Spiral Database",
         "tharos/leanmapper": "An ORM based on powerful Dibi database abstraction library"
     },

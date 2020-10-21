@@ -25,7 +25,7 @@ use Nette\DI\Definitions\Reference;
 class InvokerExtension extends Extension
 {
     /**
-     * {@inheritDoc}
+     * {@inheritdoc}
      */
     public function loadConfiguration(): void
     {
@@ -36,7 +36,7 @@ class InvokerExtension extends Extension
     }
 
     /**
-     * {@inheritDoc}
+     * {@inheritdoc}
      */
     public function beforeCompile(): void
     {
