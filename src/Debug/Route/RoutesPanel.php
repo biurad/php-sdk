@@ -150,7 +150,6 @@ final class RoutesPanel implements Tracy\IBarPanel
         [$class, $method] = [$presenter, null];
 
         if (\is_string($presenter) && 1 === \preg_match(CallableResolver::CALLABLE_PATTERN, $presenter, $matches)) {
-            \var_dump($matches);
             [, $class, $method] = $matches;
         }
 

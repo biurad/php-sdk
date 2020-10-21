@@ -141,7 +141,6 @@ class RouterExtension extends Extension
         if (null !== $this->getFromConfig('namespace')) {
             $router->addSetup('setNamespace', [$this->getFromConfig('namespace')]);
         }
-        $router->addSetup([new Reference('Tracy\Bar'), 'addPanel'], [new Statement(RoutesPanel::class, [$router])]);
 
         $middlewares = \array_merge(
             [
@@ -165,7 +164,8 @@ class RouterExtension extends Extension
 
                     return  $middleware;
                 }, $middlewares),
-            ]);
+            ])
+            ->addSetup([new Reference('Tracy\Bar'), 'addPanel'], [new Statement(RoutesPanel::class, [$router])]);
 
         $container->addAlias('router', $this->prefix('pipeline'));
     }
