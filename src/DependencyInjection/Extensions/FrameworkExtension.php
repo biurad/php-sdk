@@ -21,9 +21,6 @@ use Biurad\Cache\AdapterFactory;
 use Biurad\Cache\CacheItemPool;
 use Biurad\Cache\SimpleCache;
 use Biurad\Cache\TagAwareCache;
-use Biurad\Events\LazyEventDispatcher;
-use Biurad\Events\TraceableEventDispatcher;
-use Biurad\Framework\Debug\Event\EventsPanel;
 use Biurad\Framework\DependencyInjection\Extension;
 use Biurad\Framework\ExtensionLoader;
 use Biurad\Framework\HttpKernel;
@@ -31,12 +28,8 @@ use Biurad\Framework\Interfaces\HttpKernelInterface;
 use Cache\Adapter\Doctrine\DoctrineCachePool;
 use Doctrine\Common\Cache\Cache as DoctrineCache;
 use Nette;
-use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\Statement;
-use Nette\PhpGenerator\ClassType as ClassTypeGenerator;
 use Nette\Schema\Expect;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 class FrameworkExtension extends Extension
 {
@@ -78,18 +71,6 @@ class FrameworkExtension extends Extension
         }
         $container->register($this->prefix('cache_psr16'), SimpleCache::class);
 
-        // Events ...
-        $events = new Statement(LazyEventDispatcher::class);
-
-        $events = $container->register(
-            $this->prefix('dispatcher'),
-            $container->getParameter('debugMode') ? new Statement(TraceableEventDispatcher::class, [$events]) : $events
-        );
-
-        if ($container->getParameter('debugMode')) {
-            $events->addSetup([new Reference('Tracy\Bar'), 'addPanel'], [new Statement(EventsPanel::class, [$events])]);
-        }
-
         foreach ($this->compiler->getExtensions() as $name => $extension) {
             foreach ($this->getFromConfig('imports') as $resource) {
                 try {
@@ -111,21 +92,6 @@ class FrameworkExtension extends Extension
 
         $container->addAlias('events', $this->prefix('dispatcher'));
         $container->addAlias('application', $this->prefix('app'));
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function beforeCompile(): void
-    {
-        $container  = $this->getContainerBuilder();
-        $type       = $container->findByType(EventSubscriberInterface::class);
-        $dispatcher = $container->getDefinitionByType(EventDispatcherInterface::class);
-
-        // Register as services
-        foreach ($this->getServiceDefinitionsFromDefinitions($type) as $definition) {
-            $dispatcher->addSetup('addSubscriber', [$definition]);
-        }
     }
 
     /**

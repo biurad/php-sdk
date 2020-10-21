@@ -80,6 +80,7 @@ class ExtensionLoader
         'search'        => [Nette\DI\Extensions\SearchExtension::class, ['%tempDir%/cache/nette.searches']],
         'di_aware'      => Biurad\Framework\DependencyInjection\Extensions\ContainerAwareExtension::class,
         'callable'      => Biurad\Framework\DependencyInjection\Extensions\InvokerExtension::class,
+        'events'        => [Biurad\Framework\DependencyInjection\Extensions\EventDispatcherExtension::class, ['%appDir%']],
         'http'          => [Biurad\Framework\DependencyInjection\Extensions\HttpExtension::class, ['%tempDir%/session']],
         'routing'       => Biurad\Framework\DependencyInjection\Extensions\RouterExtension::class,
         'console'       => Biurad\Framework\DependencyInjection\Extensions\TerminalExtension::class,
