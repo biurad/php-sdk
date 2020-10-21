@@ -83,6 +83,7 @@ class ExtensionLoader
         'routing'       => Biurad\Framework\DependencyInjection\Extensions\RouterExtension::class,
         'console'       => [Biurad\Framework\DependencyInjection\Extensions\TerminalExtension::class, ['%appDir%']],
         'filesystem'    => Biurad\Framework\DependencyInjection\Extensions\FileManagerExtension::class,
+        'templating'    => Biurad\Framework\DependencyInjection\Extensions\TemplatingExtension::class,
         'leanmapper'    => [Biurad\Framework\DependencyInjection\Extensions\LeanMapperExtension::class, ['%appDir%']],
         'spiraldb'      => [Biurad\Framework\DependencyInjection\Extensions\SpiralDatabaseExtension::class, ['%appDir%', '%tempDir%/migrations']],
         'tracy'         => [Tracy\Bridges\Nette\TracyExtension::class, ['%debugMode%', '%consoleMode%']],
