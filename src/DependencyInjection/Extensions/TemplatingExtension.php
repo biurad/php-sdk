@@ -21,7 +21,9 @@ use Biurad\Framework\DependencyInjection\Extension;
 use Biurad\UI\Helper\SlotsHelper;
 use Biurad\UI\Interfaces\RenderInterface;
 use Biurad\UI\Interfaces\TemplateInterface;
+use Biurad\UI\Renders\LatteRender;
 use Biurad\UI\Renders\PhpNativeRender;
+use Biurad\UI\Renders\TwigRender;
 use Biurad\UI\Storage\CacheStorage;
 use Biurad\UI\Storage\FilesystemStorage;
 use Biurad\UI\Template;
@@ -70,9 +72,36 @@ class TemplatingExtension extends Extension
 
         $filesystemLoader = new Statement(FilesystemStorage::class, [$this->getFromConfig('paths')]);
         $cacheLoader      = new Statement(CacheStorage::class, [$filesystemLoader, $this->getFromConfig('cache_path')]);
+        $cacheTemplates   = null !== $this->getFromConfig('cache_path');
+
+        if (\class_exists('Latte\Engine')) {
+            $container->register($this->prefix('latte_engine'), 'Latte\Engine')
+                ->addSetup('setTempDirectory', [$this->getFromConfig('cache_path')])
+                ->addSetup('setAutoRefresh', [$container->getParameter('debugMode')]);
+
+            $container->register($this->prefix('render_latte'), LatteRender::class);
+
+            if (false !== $cacheTemplates) {
+                $cacheTemplates = false;
+            }
+        }
+
+        if (\class_exists('Twig\Environment')) {
+            $container->register('twig_environment', 'Twig\Environment')
+                ->setArguments([new Statement('Twig\Loader\ArrayLoader'), [
+                    'cache' => $this->getFromConfig('cache_path') ?? false,
+                    'debug' => $container->getParameter('debugMode'),
+                ]]);
+
+            $container->register($this->prefix('render_twig'), TwigRender::class);
+
+            if (false !== $cacheTemplates) {
+                $cacheTemplates = false;
+            }
+        }
 
         $factory = $container->register($this->prefix('factory'), Template::class)
-            ->setArguments([null !== $this->getFromConfig('cache_path') ? $cacheLoader : $filesystemLoader, []]);
+            ->setArguments([$cacheTemplates ? $cacheLoader : $filesystemLoader, []]);
 
         foreach ($this->getFromConfig('globals') as $key => $value) {
             $factory->addSetup('addGobal', [$key, $value]);
