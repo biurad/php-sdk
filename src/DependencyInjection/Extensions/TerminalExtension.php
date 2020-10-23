@@ -90,8 +90,8 @@ class TerminalExtension extends Extension
                         : new Reference(RouteCollectorInterface::class),
                 ]
             ),
-            new Statement(ServerRunCommand::class, [$this->config->server_root, $container->getParameter('envMode')]),
-            new Statement(ServerStartCommand::class, [$this->config->server_root, $container->getParameter('envMode')]),
+            new Statement(ServerRunCommand::class, [$this->getFromConfig('server_root'), $container->getParameter('envMode')]),
+            new Statement(ServerStartCommand::class, [$this->getFromConfig('server_root'), $container->getParameter('envMode')]),
             ServerStopCommand::class,
             AboutCommand::class,
         ]);
