@@ -45,10 +45,13 @@ class Kernel
      *
      * @param array<string,mixed> $directories  directory map, "root", "tempDir", and "configDir" is required
      * @param bool                $handleErrors enable global error handling
+     * @param bool                $return       If set to true, container instance will return
+     *
+     * @return null|ContainerInterface
      *
      * @throws Throwable
      */
-    public static function boot(array $directories, $handleErrors = true): void
+    public static function boot(array $directories, bool $handleErrors = true, bool $return = false)
     {
         if (!isset($directories['root'], $directories['tempDir'], $directories['configDir'])) {
             throw new DirectoryNotFoundException('Unable to locate [root, tempDir, configDir] directories');
@@ -64,6 +67,8 @@ class Kernel
             $bundle->setContainer($container);
             $bundle->boot();
         }
+
+        return $return ? $container : null;
     }
 
     /**
