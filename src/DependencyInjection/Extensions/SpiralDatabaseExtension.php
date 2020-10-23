@@ -111,6 +111,10 @@ class SpiralDatabaseExtension extends Extension
     {
         $container = $this->getContainerBuilder();
 
+        if (!interface_exists(DatabaseProviderInterface::class)) {
+            return;
+        }
+
         $container->register($this->prefix('config'), DatabaseConfig::class)
             ->setArguments([\array_intersect_key(
                 $this->config,
