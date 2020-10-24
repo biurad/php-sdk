@@ -17,10 +17,12 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\DependencyInjection\Extensions;
 
+use Biurad\Framework\Debug\Template\TemplatesPanel;
 use Biurad\Framework\DependencyInjection\Extension;
 use Biurad\UI\Helper\SlotsHelper;
 use Biurad\UI\Interfaces\RenderInterface;
 use Biurad\UI\Interfaces\TemplateInterface;
+use Biurad\UI\Profile;
 use Biurad\UI\Renders\LatteRender;
 use Biurad\UI\Renders\PhpNativeRender;
 use Biurad\UI\Renders\TwigRender;
@@ -28,6 +30,7 @@ use Biurad\UI\Storage\CacheStorage;
 use Biurad\UI\Storage\FilesystemStorage;
 use Biurad\UI\Template;
 use Nette;
+use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\Statement;
 use Nette\Schema\Expect;
 
@@ -101,7 +104,13 @@ class TemplatingExtension extends Extension
         }
 
         $factory = $container->register($this->prefix('factory'), Template::class)
-            ->setArguments([$cacheTemplates ? $cacheLoader : $filesystemLoader, []]);
+            ->setArguments(
+                [
+                    $cacheTemplates ? $cacheLoader : $filesystemLoader,
+                    $container->getParameter('debugMode') ? new Statement(Profile::class) : null,
+                    [],
+                ]
+            );
 
         foreach ($this->getFromConfig('globals') as $key => $value) {
             $factory->addSetup('addGobal', [$key, $value]);
@@ -129,6 +138,10 @@ class TemplatingExtension extends Extension
         // Register as services
         foreach ($this->getServiceDefinitionsFromDefinitions($type) as $definition) {
             $template->addSetup('addRender', [$definition]);
+        }
+
+        if ($container->getParameter('debugMode')) {
+            $template->addSetup([new Reference('Tracy\Bar'), 'addPanel'], [new Statement(TemplatesPanel::class, [$template])]);
         }
     }
 }
