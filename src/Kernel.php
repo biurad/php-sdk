@@ -60,6 +60,13 @@ class Kernel
         $directories = self::resolveDirectories($directories);
         $loader      = new ContainerLoader(); // Boot the CoreKenel for processes to begin...
 
+        // Let's enable our debugger our exceptions first.
+        if (false !== $handleErrors) {
+            //$loader->setDebugMode('23.75.345.200'); // enable for your remote IP
+            //$loader->setDebugMode(false); // uncomment to start in production mode
+            $loader->enableDebugger($directories['tempDir'] . \DIRECTORY_SEPARATOR . 'logs');
+        }
+
         $loader->initializeBundles(require $directories['configDir'] . '/bundles.php');
         $container = self::initializeContainer($directories, $handleErrors, $loader);
 
@@ -98,15 +105,6 @@ class Kernel
 
             (new Dotenv())->loadEnv($envPath);
             $loader->addDynamicParameters(['env' => $_ENV]);
-        }
-
-        // Let's enable our debugger our exceptions first.
-        if (false !== $handleErrors) {
-            $errorEmail = $_ENV['APP_ERROR_MAIL'] ?? null;
-
-            //$loader->setDebugMode('23.75.345.200'); // enable for your remote IP
-            //$loader->setDebugMode(false); // uncomment to start in production mode
-            $loader->enableDebugger($directories['tempDir'] . \DIRECTORY_SEPARATOR . 'logs', $errorEmail);
         }
 
         $loader->addParameters([
