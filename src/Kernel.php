@@ -47,9 +47,9 @@ class Kernel
      * @param bool                $handleErrors enable global error handling
      * @param bool                $return       If set to true, container instance will return
      *
-     * @return null|ContainerInterface
-     *
      * @throws Throwable
+     *
+     * @return null|ContainerInterface
      */
     public static function boot(array $directories, bool $handleErrors = true, bool $return = false)
     {
@@ -72,6 +72,10 @@ class Kernel
 
         foreach ($loader->getBundles() as $bundle) {
             $bundle->setContainer($container);
+
+            if (isset($_ENV['PHPUNIT_TESTING']) && false !== $_ENV['PHPUNIT_TESTING']) {
+                break;
+            }
             $bundle->boot();
         }
 
