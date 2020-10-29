@@ -17,29 +17,104 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Debug\Event;
 
-use Tracy\Helpers;
-
 ?>
 
-<h1>Events Listeners (<?php echo count($listeners); ?>)</h1>
+<h1>Events Listeners (<?php echo $this->data['listeners_count']; ?>)</h1>
 <div class="tracy-inner">
     <div class="tracy-inner-container">
-        <table>
-            <thead>
-                <tr>
-                    <th>Events</th>
-                    <th>Time Laps</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                <?php foreach ($events as $index => $event) : ?>
+        <h2><strong>Called Listeners</strong></h2>
+        <?php if (empty($this->data['called_listeners'])): ?>
+            <div class="empty">
+                <p>No events have been recorded. Check that debugging is enabled in the kernel.</p>
+            </div>
+        <?php else: ?>
+            <table>
+                <thead>
                     <tr>
-                        <td><?php echo Helpers::escapeHtml($event['event']); ?></td>
-                        <td><?php echo $event['duration']; ?></td>
+                        <th scope="col">Event name</th>
+                        <th scope="col">Priority</th>
+                        <th scope="col">Duration</th>
+                        <th scope="col">Listener</th>
                     </tr>
-                <?php endforeach ?>
-            </tbody>
-        </table>
+                </thead>
+
+                <tbody>
+                    <?php foreach ($this->data['called_listeners'] as $listener) : ?>
+                        <tr>
+                            <td><?= $listener['event'] ?></td>
+                            <td><?= $listener['priority'] ?></td>
+                            <td><?= $listener['duration'] ?></td>
+                            <td><?= $listener['pretty'] ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        <?php endif; ?>
+
+        <h2><strong>Not Called Listeners</strong></h2>
+        <div class="tracy-inner-container">
+            <?php if (empty($this->data['not_called_listeners'])): ?>
+                <p>
+                    All listeners were called for this request or an error occurred
+                    when trying to collect uncalled listeners (in which case check the
+                    logs to get more information).
+                </p>
+            <?php else: ?>
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Event name</th>
+                            <th scope="col">Priority</th>
+                            <th scope="col">Duration</th>
+                            <th scope="col">Listener</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <?php foreach ($this->data['not_called_listeners'] as $listener) : ?>
+                            <tr>
+                                <td><?= $listener['event'] ?></td>
+                                <td><?= $listener['priority'] ?></td>
+                                <td><?= $listener['duration'] ?></td>
+                                <td><?= $listener['pretty'] ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
+        </div>
+
+        <h2><strong>Orphaned Events</strong></h2>
+        <div class="tracy-inner-container">
+            <?php if (empty($this->data['orphaned_events'])): ?>
+                <p>
+                    All dispatched events were handled or an error occurred
+                    when trying to collect orphaned events (in which case check the
+                    logs to get more information).
+                </p>
+            <?php else: ?>
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Event name</th>
+                            <th scope="col">Priority</th>
+                            <th scope="col">Duration</th>
+                            <th scope="col">Listener</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <?php foreach ($this->data['orphaned_events'] as $listener) : ?>
+                            <tr>
+                                <td><?= $listener['event'] ?></td>
+                                <td><?= $listener['priority'] ?></td>
+                                <td><?= $listener['duration'] ?></td>
+                                <td><?= $listener['pretty'] ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            <?php endif; ?>
+        </div>
     </div>
 </div>

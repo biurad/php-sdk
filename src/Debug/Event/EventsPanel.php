@@ -29,12 +29,17 @@ class EventsPanel implements Tracy\IBarPanel
 {
     use Nette\SmartObject;
 
-    /** @var TraceableEventDispatcher */
-    private $events;
+    /** @var array<string,mixed> */
+    private $data;
 
     public function __construct(TraceableEventDispatcher $dispatcher)
     {
-        $this->events = $dispatcher;
+        $this->data = [
+            'listeners_count' => count($dispatcher->getListeners()),
+            'called_listeners' => $dispatcher->getCalledListeners(),
+            'not_called_listeners' => $dispatcher->getNotCalledListeners(),
+            'orphaned_events' => $dispatcher->getOrphanedEvents(),
+        ];
     }
 
     /**
@@ -57,9 +62,6 @@ class EventsPanel implements Tracy\IBarPanel
     public function getPanel(): string
     {
         return Nette\Utils\Helpers::capture(function (): void {
-            $events    = $this->events->getEventsLogs();
-            $listeners = $this->events->getCalledListeners();
-
             require __DIR__ . '/templates/EventPanel.panel.phtml';
         });
     }
