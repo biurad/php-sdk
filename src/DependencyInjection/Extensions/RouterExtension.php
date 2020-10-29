@@ -21,7 +21,7 @@ use Biurad\Framework\Debug\Route\RoutesPanel;
 use Biurad\Framework\DependencyInjection\Extension;
 use Biurad\Framework\DependencyInjection\XmlAdapter;
 use Biurad\Framework\ExtensionLoader;
-use Biurad\Framework\Router as FrameworkRouter;
+use Biurad\Framework\Listeners\EventRouteListener;
 use Biurad\Http\Middlewares\AccessControlMiddleware;
 use Biurad\Http\Middlewares\CacheControlMiddleware;
 use Biurad\Http\Middlewares\ContentSecurityPolicyMiddleware;
@@ -29,11 +29,13 @@ use Biurad\Http\Middlewares\CookiesMiddleware;
 use Biurad\Http\Middlewares\ErrorHandlerMiddleware;
 use Biurad\Http\Middlewares\HttpMiddleware;
 use Biurad\Http\Middlewares\SessionMiddleware;
-use Doctrine\Common\Annotations\Reader as AnnotationReader;
+use Doctrine\Common\Annotations\Reader;
+use Flight\Routing\Interfaces\RouteListenerInterface;
 use Flight\Routing\Middlewares\PathMiddleware;
 use Flight\Routing\RouteCollector;
 use Flight\Routing\RouteLoader;
 use Flight\Routing\RoutePipeline;
+use Flight\Routing\Router as FlightRouter;
 use Nette;
 use Nette\DI\Config\Adapters\NeonAdapter;
 use Nette\DI\Definitions\Reference;
@@ -51,7 +53,6 @@ class RouterExtension extends Extension
     {
         return Nette\Schema\Expect::structure([
             'namespace'             => Nette\Schema\Expect::string()->default(null),
-            'cache_routes'          => Nette\Schema\Expect::bool()->default(false),
             'matcher'               => Expect::anyOf(Expect::string(), Expect::object())->before(function ($value) {
                 return (\is_string($value) && \class_exists($value)) ? new Statement($value) : $value;
             }),
@@ -115,32 +116,29 @@ class RouterExtension extends Extension
             $this->getFromConfig('shortcut')
         );
 
-        $collector = new Statement([new Reference($this->prefix('collector')), 'getCollection']);
-
         // Added Annotations support
-        if (\interface_exists(AnnotationReader::class)) {
-            $loader = $container->register($this->prefix('loader'), RouteLoader::class)
-                ->setArgument('reader', new Reference(AnnotationReader::class))
-                ->addSetup('attachArray', [$this->getFromConfig('resources')]);
+        $container->register($this->prefix('loader'), RouteLoader::class)
+            ->setArgument('reader', \interface_exists(Reader::class) ? new Reference(Reader::class) : null)
+            ->addSetup('attachArray', [$this->getFromConfig('resources')]);
 
-            if ($this->getFromConfig('cache_routes') && $container->getParameter('productionMode')) {
-                $loader->addSetup('setCache');
-            }
+        $container->register($this->prefix('route_listener'), EventRouteListener::class);
 
-            $collector = new Statement([new Reference($this->prefix('loader')), 'load']);
-        }
-
-        $router = $container->register($this->prefix('factory'), FrameworkRouter::class)
+        $router = $container->register($this->prefix('factory'), FlightRouter::class)
             ->setArgument('matcher', \is_string($matcher) ? new Reference($matcher) : $matcher)
             ->addSetup('addParameters', [$this->getFromConfig('requirements')])
-            ->addSetup('addParameters', [$this->getFromConfig('defaults'), FrameworkRouter::TYPE_DEFAULT])
-            ->addSetup('?->addRoute(??)', [
-                '@self', new PhpLiteral('...'), $collector,
-            ]);
+            ->addSetup('addParameters', [$this->getFromConfig('defaults'), FlightRouter::TYPE_DEFAULT]);
 
         if (null !== $this->getFromConfig('namespace')) {
             $router->addSetup('setNamespace', [$this->getFromConfig('namespace')]);
         }
+
+        if ($container->getParameter('debugMode')) {
+            $router->addSetup('setProfiler');
+        }
+
+        $router->addSetup('?->addRoute(??)', [
+            '@self', new PhpLiteral('...'), new Statement([new Reference($this->prefix('loader')), 'load']),
+        ]);
 
         $middlewares = \array_merge(
             [
@@ -194,6 +192,21 @@ class RouterExtension extends Extension
         $this->compiler->addDependencies($loader->getDependencies());
 
         return $res;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function beforeCompile(): void
+    {
+        $container = $this->getContainerBuilder();
+        $listeners = $container->findByType(RouteListenerInterface::class);
+
+        $container->getDefinitionByType(FlightRouter::class)
+            ->addSetup(
+                '?->addRouteListener(...?)',
+                ['@self', $this->getServiceDefinitionsFromDefinitions($listeners)]
+            );
     }
 
     private function addRoute(ServiceDefinition $collector, $routes): void
