@@ -53,73 +53,64 @@ use Tracy\Helpers;
         background: #eee;
         white-space: nowrap;
     }
+
+    #tracy-debug .nette-RoutingPanel-center tr td,
+    #tracy-debug .nette-RoutingPanel-center tr th
+    {
+        text-align: center;
+    }
 </style>
 
-<h1>
-    <?php if ($matched === null) : ?>
-        <?php echo is_string($routers) ? 'Method not found' : 'No route'; ?>
-    <?php elseif (isset($matched['presenter'])) : ?>
-        <?php echo ($matched['presenter'] instanceof \Closure) ? 'Closure:type' : $matched['presenter']; ?>
-    <?php endif ?>
-</h1>
+<h1>Flight Routing Info [<?php echo $duration ?>]</h1>
 
 <div class="tracy-inner nette-RoutingPanel">
     <div class="tracy-inner-container">
-        <?php if (empty($routers)) : ?>
-            <p>No routers defined for current uri: <?php echo $url; ?>.</p>
-        <?php elseif (is_string($routers)) : ?>
-            <p><?php echo $routers . ", not [$method]"; ?></p>
-        <?php else : ?>
-            <table>
-                <thead>
-                    <tr>
-                        <th></th>
-                        <th>Name</th>
-                        <th>Matched as</th>
-                        <th>Route</th>
+        <h2>Router Metrics</h2>
+        <table class="nette-RoutingPanel-center">
+            <tr>
+                <th scope="col">Fetched Time</th>
+                <th scope="col">Memory Usage</th>
+                <th scope="col">Routes Found</th>
+                <th scope="col">Source</th>
+            </tr>
+
+            <tr>
+                <td><?php echo $duration ?></td>
+                <td><?php echo $memory ?></td>
+                <td><?php echo $this->routeCount ?></td>
+                <td>
+                    <?php if ($source && is_string($source->getFileName())) : ?>
+                        <a href="<?php echo Helpers::escapeHtml(Tracy\Helpers::editorUri($source->getFileName(), $source->getStartLine())) ?>"><?php echo ($source instanceof \ReflectionClass || $source instanceof \ReflectionFunction) ? $source->getName() : $source->getDeclaringClass()->getName() . '::' . $source->getName() . '()' ?></a>
+                    <?php else: ?>
+                        PHP Builtin
+                    <?php endif ?>
+                </td>
+            </tr>
+        </table>
+
+        <h2>Routes Metrics</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Duration</th>
+                    <th>Memory</th>
+                    <th>Active</th>
+                    <th>Handler</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <?php foreach ($this->routes as $router) : ?>
+                    <tr class="<?php echo $router['matched'] ? 'yes' : 'no' ?>">
+                        <td><code title="<?php echo Helpers::escapeHtml(get_class($router['route'])); ?>"> <?php echo Helpers::escapeHtml($router['name']); ?></code></td>
+                        <td><?php echo $router['duration']; ?></td>
+                        <td><?php echo $router['memory']; ?></td>
+                        <td><?php echo $router['matched'] ? '✓ Yes' : '≈ No'; ?></td>
+                        <td><?php echo Dumper::toHtml($router['route'], [Dumper::COLLAPSE => true, Dumper::LIVE => true]); ?></td>
                     </tr>
-                </thead>
-
-                <tbody>
-                    <?php foreach ($routers as $router) : ?>
-                        <tr class="<?php echo $router['matched'] ?>">
-                            <td><?php echo $router['matched'] === 'yes' ? '✓' : ($router['matched'] === 'may' ? '≈' : ''); ?></td>
-
-                            <td><code title="<?php echo Helpers::escapeHtml(get_class($router['route'])); ?>"> <?php echo Helpers::escapeHtml($router['name']); ?></code></td>
-
-                            <td><?php if ($router['params']) : ?><code>
-                                <?php $params = $router['params']; ?>
-                                <?php if (isset($params['presenter'])) : ?>
-                                    <strong><?php echo ($matched['presenter'] instanceof \Closure) ? 'Closure:type' : $matched['presenter']; ?></strong><br />
-                                <?php endif ?>
-                                <?php foreach ($router['params'] as $key => $value) : ?>
-                                    <?php if ('presenter' === $key) : ?>
-                                        <?php continue; ?>
-                                    <?php endif ?>
-                                    <?= Helpers::escapeHtml($key), '&nbsp;=&nbsp;', is_string($value) ? Helpers::escapeHtml($value) . '<br />' : Dumper::toHtml($value, [Dumper::COLLAPSE => true, Dumper::LIVE => true]); ?>
-                                <?php endforeach ?>
-                                </code><?php endif ?>
-                            </td>
-
-                            <td><code>
-                                    <?php echo Dumper::toHtml($router['route'], [Dumper::COLLAPSE => true, Dumper::LIVE => true]); ?>
-                                </code>
-                            </td>
-                        </tr>
-                    <?php endforeach ?>
-                </tbody>
-            </table>
-        <?php endif ?>
-    </div>
-
-    <div class="tracy-inner-container">
-        <p>
-            <code><?= Helpers::escapeHtml($method) ?></code>
-            <code><wbr><span class="nette-RoutingPanel-rel"><?= str_replace(['&amp;', '?'], ['<wbr>&amp;', '<wbr>?'], Helpers::escapeHtml($url)) ?></span></code>
-        </p>
-
-        <?php if ($source && is_string($source->getFileName())) : ?>
-            <p><a href="<?php echo Helpers::escapeHtml(Tracy\Helpers::editorUri($source->getFileName(), $source->getStartLine())) ?>"><?php echo ($source instanceof \ReflectionClass || $source instanceof \ReflectionFunction) ? $source->getName() : $source->getDeclaringClass()->getName() . '::' . $source->getName() . '()' ?></a></p>
-        <?php endif ?>
+                <?php endforeach ?>
+            </tbody>
+        </table>
     </div>
 </div>

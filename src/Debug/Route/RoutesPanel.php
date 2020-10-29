@@ -17,16 +17,14 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Debug\Route;
 
-use Biurad\Http\Interfaces\Psr17Interface;
+use Biurad\Framework\Debug\Template\TemplatesPanel;
 use Closure;
 use DivineNii\Invoker\CallableResolver;
-use Flight\Routing\Exceptions\MethodNotAllowedException;
-use Flight\Routing\Exceptions\RouteNotFoundException;
-use Flight\Routing\Route;
+use Flight\Routing\Interfaces\RouteInterface;
+use Flight\Routing\ProfileRoute;
 use Flight\Routing\Router;
 use Nette;
 use Nette\Utils\Callback;
-use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use ReflectionClass;
 use ReflectionFunction;
@@ -40,25 +38,24 @@ final class RoutesPanel implements Tracy\IBarPanel
 {
     use Nette\SmartObject;
 
-    /** @var Router */
-    private $router;
+    protected $routeCount = 0;
 
-    /** @var ServerRequestInterface */
-    private $httpRequest;
+    protected $renderCount = 0;
+
+    protected $memoryCount = 0;
+
+    /** @var ProfileRoute */
+    private $profiler;
 
     /** @var array */
-    private $routers = [];
-
-    /** @var null|array */
-    private $matched;
+    private $routes = [];
 
     /** @var ReflectionClass|ReflectionFunction|ReflectionMethod|string */
     private $source;
 
-    public function __construct(Router $router, Psr17Interface $factory)
+    public function __construct(Router $router)
     {
-        $this->router      = $router;
-        $this->httpRequest = $factory::fromGlobalRequest();
+        $this->profiler = $router->getProfile() ?? [];
     }
 
     /**
@@ -66,8 +63,6 @@ final class RoutesPanel implements Tracy\IBarPanel
      */
     public function getTab(): string
     {
-        $this->analyse($this->router);
-
         return Nette\Utils\Helpers::capture(function (): void {
             require __DIR__ . '/templates/RoutingPanel.tab.phtml';
         });
@@ -78,82 +73,70 @@ final class RoutesPanel implements Tracy\IBarPanel
      */
     public function getPanel(): string
     {
-        $uri = $this->httpRequest->getUri();
+        $duration = 0;
 
-        return Nette\Utils\Helpers::capture(function () use ($uri): void {
-            $matched = $this->matched;
-            $routers = $this->routers;
+        $this->processData($this->profiler);
+
+        foreach ($this->profiler as $profiler) {
+            $duration += $profiler->getDuration();
+        }
+
+        $duration = TemplatesPanel::formatDuration($duration);
+        $memory   = TemplatesPanel::formatBytes($this->memoryCount);
+
+        return Nette\Utils\Helpers::capture(function () use ($memory, $duration): void {
             $source = $this->source;
-            $url = $uri->getScheme() . '://' . $uri->getAuthority() . $uri->getPath() . $uri->getQuery();
-            $method = $this->httpRequest->getMethod();
 
             require __DIR__ . '/templates/RoutingPanel.panel.phtml';
         });
     }
 
-    /**
-     * Analyses simple route.
-     */
-    private function analyse(Router $router): void
+    private function findSource(RouteInterface $route)
     {
-        $matched = 'no';
-        $route   = null;
-        $request = $this->httpRequest;
+        $presenter = $route->getController();
 
-        foreach ($router->getRoutes() as $route) {
+        if ($presenter instanceof RequestHandlerInterface) {
+            $presenter = \get_class($presenter) . '@' . 'handle';
+        } elseif (\is_string($presenter) && \function_exists($presenter)) {
+            $presenter = $presenter;
+        } elseif (\is_callable($presenter) && !$presenter instanceof Closure) {
+            $presenter = (\is_object($presenter[0]) ? \get_class($presenter[0]) : $presenter[0]) . '@' . $presenter[1];
         }
 
-        try {
-            $router->match($request);
-        } catch (MethodNotAllowedException $e) {
-            $this->routers = $e->getMessage();
-
-            return;
-        } catch (RouteNotFoundException $e) {
-            return;
-        }
-
-        /** @var Route $route */
-        $route      = $request->getAttribute(Route::class);
-        $controller = $route->getController();
-
-        if ($controller instanceof RequestHandlerInterface) {
-            $controller = \get_class($controller) . '@' . 'handle';
-        } elseif (\is_string($controller) && \function_exists($controller)) {
-            $controller = $controller;
-        } elseif (\is_callable($controller) && !$controller instanceof Closure) {
-            $controller = (\is_object($controller[0]) ? \get_class($controller[0]) : $controller[0]) . '@' . $controller[1];
-        }
-
-        $params              = $route->getArguments();
-        $params['presenter'] = $controller;
-        $matched             = 'may';
-
-        if (null === $this->matched) {
-            $this->matched = $params;
-            $this->findSource();
-            $matched = 'yes';
-        }
-
-        $this->routers[] = [
-            'matched' => $matched,
-            'route'   => $route,
-            'name'    => $route->getName(),
-            'params'  => $params,
-        ];
-    }
-
-    private function findSource(): void
-    {
-        $params           = $this->matched;
-        $presenter        = $params['presenter'] ?? '';
         [$class, $method] = [$presenter, null];
 
         if (\is_string($presenter) && 1 === \preg_match(CallableResolver::CALLABLE_PATTERN, $presenter, $matches)) {
             [, $class, $method] = $matches;
         }
 
-        $rc           = \is_callable($presenter) ? Callback::toReflection($presenter) : new ReflectionClass($class);
-        $this->source = isset($method) && $rc->hasMethod($method) ? $rc->getMethod($method) : $rc;
+        $rc = \is_callable($presenter) ? Callback::toReflection($presenter) : new ReflectionClass($class);
+
+        return isset($method) && $rc->hasMethod($method) ? $rc->getMethod($method) : $rc;
+    }
+
+    private function processData(ProfileRoute $profile): void
+    {
+        $this->memoryCount += $profile->getMemoryUsage();
+
+        if ($profile->isRoute()) {
+            $this->routeCount += 1;
+            $this->routes[] = [
+                'name'     => $profile->getName(),
+                'duration' => TemplatesPanel::formatDuration($profile->getDuration()),
+                'memory'   => TemplatesPanel::formatBytes($profile->getMemoryUsage()),
+                'matched'  => $profile->isMatched(),
+                'route'    => $profile->getRoute(),
+            ];
+
+            if ($profile->isMatched()) {
+                $this->source = $this->findSource($profile->getRoute());
+            }
+
+            return;
+        }
+
+        foreach ($profile as $p) {
+            $this->processData($p);
+        }
     }
 }
