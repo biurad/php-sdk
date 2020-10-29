@@ -60,11 +60,11 @@ class TemplatesPanel implements IbarPanel
         }
 
         $this->templateCount = count(array_filter($profiles));
-        $duration = $this->formatDuration($duration);
-        $memory   = $this->formatBytes($this->memoryCount);
+        $duration = self::formatDuration($duration);
+        $memory   = self::formatBytes($this->memoryCount);
 
         return Helpers::capture(function () use ($duration, $memory) {
-            require __DIR__.'/templates/panel.phtml';
+            require __DIR__.'/templates/TemplatesPanel.panel.phtml';
         });
     }
 
@@ -74,11 +74,11 @@ class TemplatesPanel implements IbarPanel
     public function getTab(): string
     {
         return Helpers::capture(function () {
-            require __DIR__.'/templates/tab.phtml';
+            require __DIR__.'/templates/TemplatesPanel.tab.phtml';
         });
     }
 
-    public function formatBytes(int $size, int $precision = 2): string
+    public static function formatBytes(int $size, int $precision = 2): string
     {
         if (0 === $size || null === $size)
         {
@@ -94,7 +94,7 @@ class TemplatesPanel implements IbarPanel
         return $sign.\round(\pow(1024, $base - \floor($base)), $precision).$suffixes[\floor($base)];
     }
 
-    private function formatDuration(float $seconds): string
+    public static function formatDuration(float $seconds): string
     {
         $duration = \round($seconds, 2).'s';
 
@@ -122,8 +122,8 @@ class TemplatesPanel implements IbarPanel
         if ($profile->isTemplate()) {
             $this->templates[$profile->getName()] = [
                 'name'     => $profile->getName(),
-                'duration' => $this->formatDuration($profile->getDuration()),
-                'memory'   => $this->formatBytes($profile->getMemoryUsage()),
+                'duration' => self::formatDuration($profile->getDuration()),
+                'memory'   => self::formatBytes($profile->getMemoryUsage()),
             ];
 
             return;
