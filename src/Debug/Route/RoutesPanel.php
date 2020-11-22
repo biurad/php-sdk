@@ -38,11 +38,17 @@ final class RoutesPanel implements Tracy\IBarPanel
 {
     use Nette\SmartObject;
 
+    /** @var int */
     protected $routeCount = 0;
 
+    /** @var int */
     protected $renderCount = 0;
 
+    /** @var int */
     protected $memoryCount = 0;
+
+    /** @var float */
+    protected $duration = 0;
 
     /** @var ProfileRoute */
     private $profiler;
@@ -81,11 +87,10 @@ final class RoutesPanel implements Tracy\IBarPanel
             $duration += $profiler->getDuration();
         }
 
-        $duration = TemplatesPanel::formatDuration($duration);
-        $memory   = TemplatesPanel::formatBytes($this->memoryCount);
-
-        return Nette\Utils\Helpers::capture(function () use ($memory, $duration): void {
+        return Nette\Utils\Helpers::capture(function (): void {
             $source = $this->source;
+            $duration = TemplatesPanel::formatDuration($this->duration);
+            $memory   = TemplatesPanel::formatBytes($this->memoryCount);
 
             require __DIR__ . '/templates/RoutingPanel.panel.phtml';
         });
@@ -116,20 +121,18 @@ final class RoutesPanel implements Tracy\IBarPanel
 
     private function processData(ProfileRoute $profile): void
     {
-        $this->memoryCount += $profile->getMemoryUsage();
-
         if ($profile->isRoute()) {
             $this->routeCount += 1;
             $this->routes[] = [
                 'name'     => $profile->getName(),
-                'duration' => TemplatesPanel::formatDuration($profile->getDuration()),
-                'memory'   => TemplatesPanel::formatBytes($profile->getMemoryUsage()),
                 'matched'  => $profile->isMatched(),
                 'route'    => $profile->getRoute(),
             ];
 
             if ($profile->isMatched()) {
-                $this->source = $this->findSource($profile->getRoute());
+                $this->memoryCount = $profile->getMemoryUsage();
+                $this->duration    = $profile->getDuration();
+                $this->source      = $this->findSource($profile->getRoute());
             }
 
             return;

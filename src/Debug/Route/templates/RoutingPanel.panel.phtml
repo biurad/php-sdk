@@ -93,8 +93,7 @@ use Tracy\Helpers;
             <thead>
                 <tr>
                     <th>Name</th>
-                    <th>Duration</th>
-                    <th>Memory</th>
+                    <th>Uri Path</th>
                     <th>Active</th>
                     <th>Handler</th>
                 </tr>
@@ -104,8 +103,7 @@ use Tracy\Helpers;
                 <?php foreach ($this->routes as $router) : ?>
                     <tr class="<?php echo $router['matched'] ? 'yes' : 'no' ?>">
                         <td><code title="<?php echo Helpers::escapeHtml(get_class($router['route'])); ?>"> <?php echo Helpers::escapeHtml($router['name']); ?></code></td>
-                        <td><?php echo $router['duration']; ?></td>
-                        <td><?php echo $router['memory']; ?></td>
+                        <td><?php echo $router['route']->getPath(); ?></td>
                         <td><?php echo $router['matched'] ? '✓ Yes' : '≈ No'; ?></td>
                         <td><?php echo Dumper::toHtml($router['route'], [Dumper::COLLAPSE => true, Dumper::LIVE => true]); ?></td>
                     </tr>
