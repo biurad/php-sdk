@@ -15,10 +15,10 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Biurad\Framework\DependencyInjection\Extensions;
+namespace Biurad\Framework\Extensions;
 
 use Biurad\Framework\Debug\Template\TemplatesPanel;
-use Biurad\Framework\DependencyInjection\Extension;
+use Biurad\DependencyInjection\Extension;
 use Biurad\UI\Helper\SlotsHelper;
 use Biurad\UI\Interfaces\RenderInterface;
 use Biurad\UI\Interfaces\TemplateInterface;
@@ -136,7 +136,7 @@ class TemplatingExtension extends Extension
         $template   = $container->getDefinitionByType(TemplateInterface::class);
 
         // Register as services
-        foreach ($this->getServiceDefinitionsFromDefinitions($type) as $definition) {
+        foreach ($this->getHelper()->getServiceDefinitionsFromDefinitions($type) as $definition) {
             $template->addSetup('addRender', [$definition]);
         }
 

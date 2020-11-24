@@ -15,12 +15,12 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Biurad\Framework\DependencyInjection\Extensions;
+namespace Biurad\Framework\Extensions;
 
 use Biurad\Events\LazyEventDispatcher;
 use Biurad\Events\TraceableEventDispatcher;
 use Biurad\Framework\Debug\Event\EventsPanel;
-use Biurad\Framework\DependencyInjection\Extension;
+use Biurad\DependencyInjection\Extension;
 use Nette;
 use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\Statement;
@@ -90,7 +90,7 @@ class EventDispatcherExtension extends Extension
         $dispatcher = $container->getDefinitionByType(EventDispatcherInterface::class);
 
         // Register as services
-        foreach ($this->getServiceDefinitionsFromDefinitions($type) as $definition) {
+        foreach ($this->getHelper()->getServiceDefinitionsFromDefinitions($type) as $definition) {
             $dispatcher->addSetup('addSubscriber', [$definition]);
         }
     }

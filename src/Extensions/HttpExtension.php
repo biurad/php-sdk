@@ -15,11 +15,11 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Biurad\Framework\DependencyInjection\Extensions;
+namespace Biurad\Framework\Extensions;
 
-use Biurad\Framework\DependencyInjection\Extension;
+use Biurad\DependencyInjection\Extension;
 use Biurad\Framework\Interfaces\DispatcherInterface;
-use Biurad\Framework\Interfaces\HttpKernelInterface;
+use Biurad\Framework\Interfaces\KernelInterface;
 use Biurad\Http\Factories\GuzzleHttpPsr7Factory;
 use Biurad\Http\Interfaces\CspInterface;
 use Biurad\Http\Middlewares\CacheControlMiddleware;
@@ -162,8 +162,6 @@ class HttpExtension extends Extension
                 ),
             ]);
 
-        $container->addAlias('request', $this->prefix('request'));
-        $container->addAlias('response', $this->prefix('response'));
         $container->addAlias('session', $this->prefix('session'));
     }
 
@@ -174,10 +172,10 @@ class HttpExtension extends Extension
     {
         $container  = $this->getContainerBuilder();
         $dispatcher = $container->findByType(DispatcherInterface::class);
-        $kernel     = $container->getDefinitionByType(HttpKernelInterface::class);
+        $kernel     = $container->getDefinitionByType(KernelInterface::class);
 
         // Register as services
-        foreach ($this->getServiceDefinitionsFromDefinitions($dispatcher) as $definition) {
+        foreach ($this->getHelper()->getServiceDefinitionsFromDefinitions($dispatcher) as $definition) {
             $kernel->addSetup('addDispatcher', [$definition]);
         }
     }

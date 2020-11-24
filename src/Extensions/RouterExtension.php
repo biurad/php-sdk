@@ -15,10 +15,10 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Biurad\Framework\DependencyInjection\Extensions;
+namespace Biurad\Framework\Extensions;
 
 use Biurad\Framework\Debug\Route\RoutesPanel;
-use Biurad\Framework\DependencyInjection\Extension;
+use Biurad\DependencyInjection\Extension;
 use Biurad\Framework\DependencyInjection\XmlAdapter;
 use Biurad\Framework\ExtensionLoader;
 use Biurad\Framework\Listeners\EventRouteListener;
@@ -205,7 +205,7 @@ class RouterExtension extends Extension
         $container->getDefinitionByType(FlightRouter::class)
             ->addSetup(
                 '?->addRouteListener(...?)',
-                ['@self', $this->getServiceDefinitionsFromDefinitions($listeners)]
+                ['@self', $this->getHelper()->getServiceDefinitionsFromDefinitions($listeners)]
             );
     }
 

@@ -15,7 +15,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Biurad\Framework\DependencyInjection\Extensions;
+namespace Biurad\Framework\Extensions;
 
 use Biurad\Framework\Commands\SpiralDbListCommand;
 use Biurad\Framework\Commands\SpiralDbTableCommand;
@@ -27,7 +27,7 @@ use Biurad\Framework\Commands\SpiralMigrateStartCommand;
 use Biurad\Framework\Commands\SpiralMigrateStatusCommand;
 use Biurad\Framework\Commands\SpiralMigrateSyncCommand;
 use Biurad\Framework\CycleFactory;
-use Biurad\Framework\DependencyInjection\Extension;
+use Biurad\DependencyInjection\Extension;
 use Biurad\Framework\SpiralDatabase;
 use Biurad\Framework\SpiralMigrator;
 use Cycle\Annotated;

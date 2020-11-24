@@ -19,9 +19,10 @@ namespace Biurad\Framework;
 
 use ArrayAccess;
 use Biurad;
-use Biurad\Framework\DependencyInjection\Builder as ContainerBuilder;
+use Biurad\DependencyInjection\Builder as ContainerBuilder;
 use Composer\Autoload\ClassLoader;
 use Composer\InstalledVersions;
+use Contributte;
 use Countable;
 use Iterator;
 use IteratorAggregate;
@@ -33,6 +34,7 @@ use Nette\DI\Helpers;
 use Nette\InvalidArgumentException;
 use Nette\NotSupportedException;
 use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use ReflectionClass;
 use ReflectionObject;
 use RuntimeException;
@@ -68,24 +70,25 @@ class ExtensionLoader
 
     /** @var array [id => CompilerExtension] */
     private $extensions = [
-        'php'           => Nette\DI\Extensions\PhpExtension::class,
-        'annotation'    => Biurad\Framework\DependencyInjection\Extensions\AnnotationsExtension::class,
-        'constants'     => Nette\DI\Extensions\ConstantsExtension::class,
-        'decorator'     => Nette\DI\Extensions\DecoratorExtension::class,
-        'di'            => [Nette\DI\Extensions\DIExtension::class, ['%debugMode%']],
         'extensions'    => Nette\DI\Extensions\ExtensionsExtension::class,
+        'php'           => Nette\DI\Extensions\PhpExtension::class,
+        'constants'     => Nette\DI\Extensions\ConstantsExtension::class,
+        'di'            => [Biurad\Framework\Extensions\DIExtension::class, ['%debugMode%']],
+        'decorator'     => Nette\DI\Extensions\DecoratorExtension::class,
         'inject'        => Nette\DI\Extensions\InjectExtension::class,
         'search'        => [Nette\DI\Extensions\SearchExtension::class, ['%tempDir%/cache/nette.searches']],
-        'di_aware'      => Biurad\Framework\DependencyInjection\Extensions\ContainerAwareExtension::class,
-        'callable'      => Biurad\Framework\DependencyInjection\Extensions\InvokerExtension::class,
-        'events'        => [Biurad\Framework\DependencyInjection\Extensions\EventDispatcherExtension::class, ['%appDir%']],
-        'http'          => [Biurad\Framework\DependencyInjection\Extensions\HttpExtension::class, ['%tempDir%/session']],
-        'routing'       => Biurad\Framework\DependencyInjection\Extensions\RouterExtension::class,
-        'console'       => [Biurad\Framework\DependencyInjection\Extensions\TerminalExtension::class, ['%appDir%']],
-        'filesystem'    => Biurad\Framework\DependencyInjection\Extensions\FileManagerExtension::class,
-        'templating'    => Biurad\Framework\DependencyInjection\Extensions\TemplatingExtension::class,
-        'leanmapper'    => [Biurad\Framework\DependencyInjection\Extensions\LeanMapperExtension::class, ['%appDir%']],
-        'spiraldb'      => [Biurad\Framework\DependencyInjection\Extensions\SpiralDatabaseExtension::class, ['%appDir%', '%tempDir%/migrations']],
+        'aware'         => Contributte\DI\Extension\ContainerAwareExtension::class,
+        'autoload'      => Contributte\DI\Extension\ResourceExtension::class,
+        'callable'      => Biurad\Framework\Extensions\InvokerExtension::class,
+        'annotation'    => Biurad\Framework\Extensions\AnnotationsExtension::class,
+        'events'        => [Biurad\Framework\Extensions\EventDispatcherExtension::class, ['%appDir%']],
+        'http'          => [Biurad\Framework\Extensions\HttpExtension::class, ['%tempDir%/session']],
+        'routing'       => Biurad\Framework\Extensions\RouterExtension::class,
+        'console'       => [Biurad\Framework\Extensions\TerminalExtension::class, ['%appDir%']],
+        'filesystem'    => Biurad\Framework\Extensions\FileManagerExtension::class,
+        'templating'    => Biurad\Framework\Extensions\TemplatingExtension::class,
+        'leanmapper'    => [Biurad\Framework\Extensions\LeanMapperExtension::class, ['%appDir%']],
+        'spiraldb'      => [Biurad\Framework\Extensions\SpiralDatabaseExtension::class, ['%appDir%', '%tempDir%/migrations']],
         'tracy'         => [Tracy\Bridges\Nette\TracyExtension::class, ['%debugMode%', '%consoleMode%']],
     ];
 
@@ -178,9 +181,9 @@ class ExtensionLoader
         }
 
         /** @var RecursiveIteratorIterator|SplFileInfo[] $iterator */
-        $iterator = new \RecursiveIteratorIterator(
+        $iterator = new RecursiveIteratorIterator(
             new RecursiveDirectoryIterator($bundlePath = self::findComposerDirectory($extension)),
-            \RecursiveIteratorIterator::LEAVES_ONLY
+            RecursiveIteratorIterator::LEAVES_ONLY
         );
 
         foreach ($iterator as $file) {

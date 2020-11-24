@@ -15,9 +15,9 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Biurad\Framework\DependencyInjection\Extensions;
+namespace Biurad\Framework\Extensions;
 
-use Biurad\Framework\DependencyInjection\Extension;
+use Biurad\DependencyInjection\Extension;
 use Doctrine\Common\Annotations\AnnotationReader;
 use Doctrine\Common\Annotations\AnnotationRegistry;
 use Doctrine\Common\Annotations\CachedReader;
@@ -61,7 +61,10 @@ class AnnotationsExtension extends Extension
             AnnotationReader::addGlobalIgnoredName($annotationName);
         }
 
-        AnnotationRegistry::registerUniqueLoader('class_exists');
+        // doctrine/annotations ^1.0 compatibility.
+        if (\method_exists(AnnotationRegistry::class, 'registerLoader')) {
+            AnnotationRegistry::registerLoader('\\class_exists');
+        }
     }
 
     /**
@@ -76,7 +79,7 @@ class AnnotationsExtension extends Extension
         if ($container->getByType(DoctrineCache::class)) {
             $readerDefinition->setAutowired(false);
             $cacheName       = $this->prefix('cache');
-            $cacheDefinition = $this->getDefinitionFromConfig($config->cache, $cacheName);
+            $cacheDefinition = $this->getHelper()->getDefinitionFromConfig($config->cache, $cacheName);
 
             // If service is extension specific, then disable autowiring
             if ($cacheDefinition instanceof Definition && $cacheName === $cacheDefinition->getName()) {
@@ -94,6 +97,10 @@ class AnnotationsExtension extends Extension
     public function afterCompile(ClassType $classType): void
     {
         $initialize = $this->initialization;
-        $initialize->setBody('?::registerUniqueLoader("class_exists");', [new PhpLiteral(AnnotationRegistry::class)]);
+
+        // doctrine/annotations ^1.0 compatibility.
+        if (\method_exists(AnnotationRegistry::class, 'registerLoader')) {
+            $initialize->setBody('?::registerUniqueLoader("\\class_exists");', [new PhpLiteral(AnnotationRegistry::class)]);
+        }
     }
 }

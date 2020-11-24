@@ -15,7 +15,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Biurad\Framework\DependencyInjection\Extensions;
+namespace Biurad\Framework\Extensions;
 
 use Biurad\Framework\Commands\AboutCommand;
 use Biurad\Framework\Commands\CacheCleanCommand;
@@ -23,8 +23,8 @@ use Biurad\Framework\Commands\RouteListCommand;
 use Biurad\Framework\Commands\ServerRunCommand;
 use Biurad\Framework\Commands\ServerStartCommand;
 use Biurad\Framework\Commands\ServerStopCommand;
-use Biurad\Framework\ConsoleApp;
-use Biurad\Framework\DependencyInjection\Extension;
+use Biurad\DependencyInjection\Extension;
+use Biurad\Framework\Kernels\ConsoleKernel;
 use Flight\Routing\Interfaces\RouteCollectorInterface;
 use Flight\Routing\RouteLoader;
 use Nette;
@@ -97,7 +97,7 @@ class TerminalExtension extends Extension
         ]);
 
         $container->register($this->prefix('error_listener'), ErrorListener::class);
-        $container->register($this->prefix('app'), ConsoleApp::class)
+        $container->register($this->prefix('app'), ConsoleKernel::class)
             ->addSetup('setCommandLoader')
             ->addSetup('addCommands', [$commands]);
 
@@ -138,7 +138,7 @@ class TerminalExtension extends Extension
         }
 
         if (!empty($serviceIds)) {
-            $container->getDefinitionByType(ConsoleApp::class)
+            $container->getDefinitionByType(ConsoleKernel::class)
                 ->addSetup('addCommands', [$serviceIds]);
         }
 

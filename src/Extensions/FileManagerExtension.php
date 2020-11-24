@@ -15,10 +15,10 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Biurad\Framework\DependencyInjection\Extensions;
+namespace Biurad\Framework\Extensions;
 
 use Biurad\FileManager\ConnectionFactory;
-use Biurad\Framework\DependencyInjection\Extension;
+use Biurad\DependencyInjection\Extension;
 use League\Flysystem\Cached\CachedAdapter;
 use League\Flysystem\Cached\Storage\Psr6Cache;
 use League\Flysystem\Filesystem;
