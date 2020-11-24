@@ -17,7 +17,7 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Event;
 
-use Biurad\Framework\Interfaces\HttpKernelInterface;
+use Biurad\Framework\Interfaces\KernelInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Throwable;
 
@@ -43,7 +43,7 @@ final class ExceptionEvent extends RequestEvent
      */
     private $allowCustomResponseCode = false;
 
-    public function __construct(HttpKernelInterface $kernel, Request $request, Throwable $e)
+    public function __construct(KernelInterface $kernel, Request $request, Throwable $e)
     {
         parent::__construct($kernel, $request);
 

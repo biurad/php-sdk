@@ -78,16 +78,6 @@ final class KernelEvents
     public const RESPONSE = 'kernel.response';
 
     /**
-     * The FINISH_REQUEST event occurs when a response was generated for a request.
-     *
-     * This event allows you to reset the global and environmental state of
-     * the application, when it was changed during the request.
-     *
-     * @Event("Biurad\Framework\Event\FinishRequestEvent")
-     */
-    public const FINISH_REQUEST = 'kernel.finish_request';
-
-    /**
      * The TERMINATE event occurs once a response was sent.
      *
      * This event allows you to run expensive post-response jobs.

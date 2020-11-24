@@ -17,7 +17,7 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Event;
 
-use Biurad\Framework\Interfaces\HttpKernelInterface;
+use Biurad\Framework\Interfaces\KernelInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Symfony\Contracts\EventDispatcher\Event;
 
@@ -33,10 +33,10 @@ class KernelEvent extends Event
     private $request;
 
     /**
-     * @param HttpKernelInterface $kernel
+     * @param KernelInterface $kernel
      * @param Request             $request
      */
-    public function __construct(HttpKernelInterface $kernel, Request $request)
+    public function __construct(KernelInterface $kernel, Request $request)
     {
         $this->kernel  = $kernel;
         $this->request = $request;
@@ -45,7 +45,7 @@ class KernelEvent extends Event
     /**
      * Returns the kernel in which this event was thrown.
      *
-     * @return HttpKernelInterface
+     * @return KernelInterface
      */
     public function getKernel()
     {

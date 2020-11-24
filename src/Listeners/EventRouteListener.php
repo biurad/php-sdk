@@ -19,7 +19,7 @@ namespace Biurad\Framework\Listeners;
 
 use Biurad\Framework\Event\ControllerArgumentsEvent;
 use Biurad\Framework\Event\ControllerEvent;
-use Biurad\Framework\Interfaces\HttpKernelInterface;
+use Biurad\Framework\Interfaces\KernelInterface;
 use Biurad\Framework\KernelEvents;
 use Flight\Routing\Interfaces\RouteInterface;
 use Flight\Routing\Interfaces\RouteListenerInterface;
@@ -31,13 +31,13 @@ class EventRouteListener implements RouteListenerInterface
     /** @var EventDispatcherInterface */
     private $dispatcher;
 
-    /** @var HttpKernelInterface */
+    /** @var KernelInterface */
     private $kernel;
 
     /**
      * @param EventDispatcherInterface $dispatcher
      */
-    public function __construct(EventDispatcherInterface $dispatcher, HttpKernelInterface $kernel)
+    public function __construct(EventDispatcherInterface $dispatcher, KernelInterface $kernel)
     {
         $this->kernel     = $kernel;
         $this->dispatcher = $dispatcher;

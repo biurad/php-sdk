@@ -18,7 +18,8 @@ declare(strict_types=1);
 namespace Biurad\Framework\Dispatchers;
 
 use Biurad\Framework\Interfaces\DispatcherInterface;
-use Biurad\Framework\Interfaces\HttpKernelInterface;
+use Biurad\Framework\Interfaces\KernelInterface;
+use Biurad\Framework\Kernels\EventsKernel;
 use Symfony\Component\Console\Application;
 
 class CliDispatcher implements DispatcherInterface
@@ -34,14 +35,15 @@ class CliDispatcher implements DispatcherInterface
     /**
      * {@inheritdoc}
      */
-    public function serve(HttpKernelInterface $kernel)
+    public function serve(KernelInterface $kernel)
     {
+        /** @var Application $application */
         $application = $kernel->getContainer()->get(Application::class);
 
-        if ($application instanceof Application) {
+        if ($kernel instanceof EventsKernel) {
             $application->setDispatcher($kernel->getEventDisptacher());
-
-            return $application->run();
         }
+
+        return $application->run();
     }
 }

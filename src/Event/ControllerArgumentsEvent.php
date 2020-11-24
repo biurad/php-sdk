@@ -17,7 +17,7 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Event;
 
-use Biurad\Framework\Interfaces\HttpKernelInterface;
+use Biurad\Framework\Interfaces\KernelInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 /**
@@ -38,7 +38,7 @@ final class ControllerArgumentsEvent extends KernelEvent
 
     private $arguments;
 
-    public function __construct(HttpKernelInterface $kernel, callable $controller, array $arguments, Request $request)
+    public function __construct(KernelInterface $kernel, callable $controller, array $arguments, Request $request)
     {
         parent::__construct($kernel, $request);
 

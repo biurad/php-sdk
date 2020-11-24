@@ -42,5 +42,5 @@ interface DispatcherInterface
      *
      * @return mixed|ResponseInterface
      */
-    public function serve(HttpKernelInterface $kernel);
+    public function serve(KernelInterface $kernel);
 }
