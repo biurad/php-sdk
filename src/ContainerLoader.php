@@ -17,9 +17,9 @@ declare(strict_types=1);
 
 namespace Biurad\Framework;
 
-use Biurad\Framework\DependencyInjection\Extensions\BundlesExtension;
-use Biurad\Framework\DependencyInjection\Loader;
-use Biurad\Framework\DependencyInjection\XmlAdapter;
+use Biurad\Framework\Extensions\BundlesExtension;
+use Biurad\DependencyInjection\Loader;
+use Biurad\DependencyInjection\XmlAdapter;
 use Biurad\Framework\Interfaces\BundleInterface;
 use Composer\Autoload\ClassLoader;
 use LogicException;

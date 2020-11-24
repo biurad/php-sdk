@@ -23,7 +23,7 @@ use LogicException;
 use Nette\DI\CompilerExtension;
 use Nette\DI\ContainerBuilder;
 use ReflectionObject;
-
+use Contributte\DI\TContainerAware;
 /**
  * An implementation of BundleInterface that adds a few conventions for DependencyInjection extensions.
  *
@@ -31,7 +31,7 @@ use ReflectionObject;
  */
 abstract class Bundle implements BundleInterface
 {
-    use Traits\ContainerAwareTrait;
+    use TContainerAware;
 
     /** @var null|string */
     protected $path;

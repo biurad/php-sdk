@@ -17,6 +17,7 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Interfaces;
 
+use Contributte\DI\IContainerAware;
 use Nette\DI\ContainerBuilder;
 
 /**
@@ -24,7 +25,7 @@ use Nette\DI\ContainerBuilder;
  *
  * @author Fabien Potencier <fabien@symfony.com>
  */
-interface BundleInterface extends ContainerAwareInterface
+interface BundleInterface extends IContainerAware
 {
     /**
      * Boots the Bundle.
