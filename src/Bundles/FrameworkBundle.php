@@ -18,10 +18,11 @@ declare(strict_types=1);
 namespace Biurad\Framework\Bundles;
 
 use Biurad\Framework\Bundle;
-use Biurad\Framework\DependencyInjection\Extensions\FrameworkExtension;
+use Biurad\Framework\Extensions\FrameworkExtension;
 use Biurad\Framework\Dispatchers\CliDispatcher;
 use Biurad\Framework\Dispatchers\HttpDispatcher;
-use Biurad\Framework\Interfaces\HttpKernelInterface;
+use Biurad\Framework\Interfaces\KernelInterface;
+use Biurad\Framework\Kernels\EventsKernel;
 use Biurad\Http\Factories\GuzzleHttpPsr7Factory;
 use Flight\Routing\Publisher;
 use Laminas\HttpHandlerRunner\Emitter\SapiStreamEmitter;
@@ -35,7 +36,7 @@ class FrameworkBundle extends Bundle
 {
     public function boot(): void
     {
-        $kernel   = $this->container->get(HttpKernelInterface::class);
+        $kernel   = $this->container->get(KernelInterface::class);
         $request  = GuzzleHttpPsr7Factory::fromGlobalRequest();
 
         $response = $kernel->serve($request);
@@ -43,7 +44,10 @@ class FrameworkBundle extends Bundle
         if ($response instanceof ResponseInterface) {
             // Send response to  the browser...
             (new Publisher())->publish($response, new SapiStreamEmitter());
-            $kernel->terminate($request, $response);
+
+            if ($kernel instanceof EventsKernel) {
+                $kernel->terminate($request, $response);
+            }
         }
     }
 
@@ -58,9 +62,8 @@ class FrameworkBundle extends Bundle
         }
 
         // Add default dispatchers ...
-        $container->getDefinitionByType(HttpKernelInterface::class)
-            ->addSetup('addDispatcher', [new Statement(HttpDispatcher::class)])
-            ->addSetup('addDispatcher', [new Statement(CliDispatcher::class)]);
+        $container->getDefinitionByType(KernelInterface::class)
+            ->addSetup('addDispatcher', [new Statement(HttpDispatcher::class), new Statement(CliDispatcher::class)]);
     }
 
     /**

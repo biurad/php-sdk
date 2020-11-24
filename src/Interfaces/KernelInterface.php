@@ -19,14 +19,14 @@ namespace Biurad\Framework\Interfaces;
 
 use Exception;
 use Psr\Http\Message\ServerRequestInterface;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
+use Biurad\DependencyInjection\FactoryInterface;
 
 /**
  * HttpKernelInterface handles app Dispatchers.
  *
  * @author Divine Niiquaye Ibok <divineibok@gmail.com>
  */
-interface HttpKernelInterface
+interface KernelInterface
 {
     /**
      * Handles a served Dispatcher.
@@ -44,11 +44,12 @@ interface HttpKernelInterface
     public function serve(ServerRequestInterface $request, bool $catch = true);
 
     /**
-     * Get the symfony's event dispatcher.
+     * Add new dispatcher(s). This method must only be called before method `serve`
+     * will be invoked.
      *
-     * @return EventDispatcherInterface
+     * @param DispatcherInterface ...$dispatchers
      */
-    public function getEventDisptacher(): EventDispatcherInterface;
+    public function addDispatcher(DispatcherInterface ...$dispatchers): void;
 
     /**
      * Get the Nette DI container

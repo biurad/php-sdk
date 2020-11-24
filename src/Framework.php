@@ -17,7 +17,7 @@ declare(strict_types=1);
 
 namespace Biurad\Framework;
 
-use Biurad\Framework\Interfaces\FactoryInterface;
+use Biurad\DependencyInjection\FactoryInterface;
 use Nette\SmartObject;
 
 /**
@@ -29,7 +29,7 @@ use Nette\SmartObject;
  *
  * @author Divine Niiquaye Ibok <divineibok@gmail.com>
  *
- * @see Biurad\Framework\HttpKernel
+ * @see Biurad\Framework\AbstractKernel
  */
 class Framework
 {

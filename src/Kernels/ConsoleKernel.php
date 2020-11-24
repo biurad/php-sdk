@@ -15,13 +15,13 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Biurad\Framework;
+namespace Biurad\Framework\Kernels;
 
-use Biurad\Framework\Interfaces\FactoryInterface;
+use Biurad\DependencyInjection\FactoryInterface;
 use Symfony\Component\Console\Application as BaseApplication;
 use Symfony\Component\Console\Input\InputOption;
 
-class ConsoleApp extends BaseApplication
+class ConsoleKernel extends BaseApplication
 {
     private $container;
 
