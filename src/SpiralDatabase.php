@@ -17,7 +17,7 @@ declare(strict_types=1);
 
 namespace Biurad\Framework;
 
-use Biurad\Framework\Interfaces\FactoryInterface;
+use Biurad\DependencyInjection\FactoryInterface;
 use Closure;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Log\LoggerAwareInterface;

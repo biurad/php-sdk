@@ -17,7 +17,7 @@ declare(strict_types=1);
 
 namespace Biurad\Framework;
 
-use Biurad\Framework\Interfaces\FactoryInterface as NetteFactoryInterface;
+use Biurad\DependencyInjection\FactoryInterface as NetteFactoryInterface;
 use Closure;
 use Cycle\ORM\Config\RelationConfig;
 use Cycle\ORM\Exception\TypecastException;

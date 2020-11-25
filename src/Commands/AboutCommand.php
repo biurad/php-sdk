@@ -17,8 +17,8 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Commands;
 
-use Biurad\Framework\ConsoleApp;
-use Biurad\Framework\Interfaces\FactoryInterface;
+use Biurad\DependencyInjection\FactoryInterface;
+use Biurad\Framework\Kernels\ConsoleKernel;
 use DateTime;
 use Locale;
 use Symfony\Component\Console\Command\Command;
@@ -74,7 +74,7 @@ EOT
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        if (!$this->getApplication() instanceof ConsoleApp) {
+        if (!$this->getApplication() instanceof ConsoleKernel) {
             return 1;
         }
 
