@@ -22,6 +22,8 @@ use Biurad\Cache\CacheItemPool;
 use Biurad\Cache\SimpleCache;
 use Biurad\Cache\TagAwareCache;
 use Biurad\DependencyInjection\Extension;
+use Biurad\Framework\Dispatchers\CliDispatcher;
+use Biurad\Framework\Dispatchers\HttpDispatcher;
 use Biurad\Framework\ExtensionLoader;
 use Biurad\Framework\Interfaces\KernelInterface;
 use Biurad\Framework\Kernels\EventsKernel;
@@ -43,7 +45,8 @@ class FrameworkExtension extends Extension
         return Nette\Schema\Expect::structure([
             'content_security_policy' => Nette\Schema\Expect::bool(false),
             'error_template'          => Nette\Schema\Expect::string(),
-            'dispatchers'             => Nette\Schema\Expect::arrayOf(Expect::string()->assert('class_exists')),
+            'dispatchers'             => Nette\Schema\Expect::listOf(Expect::string()->assert('class_exists'))
+                ->default([HttpDispatcher::class, CliDispatcher::class]),
             'imports'                 => Nette\Schema\Expect::list(),
             'cache_driver'            => Nette\Schema\Expect::string()->default(\extension_loaded('apcu') ? 'apcu' : 'array'),
         ])->castTo('array');
@@ -57,7 +60,7 @@ class FrameworkExtension extends Extension
         $container   = $this->getContainerBuilder();
 
         // Cache ...
-        if (class_exists(SimpleCache::class)) {
+        if (\class_exists(SimpleCache::class)) {
             $container->register(
                 $this->prefix('cache_doctrine'),
                 new Statement(
@@ -87,14 +90,19 @@ class FrameworkExtension extends Extension
             }
         }
 
-        $framework = $container->register(
+        $container->register(
             $this->prefix('app'),
             \class_exists(EventDispatcher::class) ? EventsKernel::class : HttpKernel::class
-        )->setType(KernelInterface::class);
-
-        foreach ($this->getFromConfig('dispatchers') as $dispatcher) {
-            $framework->addSetup('addDispatcher', [new Statement($dispatcher)]);
-        }
+        )
+        ->setType(KernelInterface::class)
+        ->addSetup('?->addDispatcher(...?)', [
+            '@self',
+            \array_map(
+                function (string $dispatcher) {
+                return new Statement($dispatcher);
+            },
+                $this->getFromConfig('dispatchers')
+            )]);
 
         $container->addAlias('application', $this->prefix('app'));
     }

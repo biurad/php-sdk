@@ -19,15 +19,12 @@ namespace Biurad\Framework\Bundles;
 
 use Biurad\Framework\Bundle;
 use Biurad\Framework\Extensions\FrameworkExtension;
-use Biurad\Framework\Dispatchers\CliDispatcher;
-use Biurad\Framework\Dispatchers\HttpDispatcher;
 use Biurad\Framework\Interfaces\KernelInterface;
 use Biurad\Framework\Kernels\EventsKernel;
 use Biurad\Http\Factories\GuzzleHttpPsr7Factory;
 use Flight\Routing\Publisher;
 use Laminas\HttpHandlerRunner\Emitter\SapiStreamEmitter;
 use Nette\DI\ContainerBuilder;
-use Nette\DI\Definitions\Statement;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -38,7 +35,6 @@ class FrameworkBundle extends Bundle
     {
         $kernel   = $this->container->get(KernelInterface::class);
         $request  = GuzzleHttpPsr7Factory::fromGlobalRequest();
-
         $response = $kernel->serve($request);
 
         if ($response instanceof ResponseInterface) {
@@ -60,10 +56,6 @@ class FrameworkBundle extends Bundle
         if (null === $container->getByType(LoggerInterface::class, false)) {
             $container->register('logger', NullLogger::class);
         }
-
-        // Add default dispatchers ...
-        $container->getDefinitionByType(KernelInterface::class)
-            ->addSetup('addDispatcher', [new Statement(HttpDispatcher::class), new Statement(CliDispatcher::class)]);
     }
 
     /**
