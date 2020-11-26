@@ -170,13 +170,14 @@ class HttpExtension extends Extension
      */
     public function beforeCompile(): void
     {
-        $container  = $this->getContainerBuilder();
-        $dispatcher = $container->findByType(DispatcherInterface::class);
-        $kernel     = $container->getDefinitionByType(KernelInterface::class);
+        $container = $this->getContainerBuilder();
+        $listeners = $container->findByType(DispatcherInterface::class);
 
         // Register as services
-        foreach ($this->getHelper()->getServiceDefinitionsFromDefinitions($dispatcher) as $definition) {
-            $kernel->addSetup('addDispatcher', [$definition]);
-        }
+        $container->getDefinitionByType(KernelInterface::class)
+            ->addSetup(
+                '?->addDispatcher(...?)',
+                ['@self', $this->getHelper()->getServiceDefinitionsFromDefinitions($listeners)]
+            );
     }
 }
