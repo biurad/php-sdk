@@ -17,13 +17,14 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Extensions;
 
+use Biurad\DependencyInjection\Extension;
 use Biurad\Events\LazyEventDispatcher;
 use Biurad\Events\TraceableEventDispatcher;
 use Biurad\Framework\Debug\Event\EventsPanel;
-use Biurad\DependencyInjection\Extension;
 use Nette;
 use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\Statement;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -60,15 +61,27 @@ class EventDispatcherExtension extends Extension
         $container = $this->getContainerBuilder();
         $index     = 1;
 
-        $events = new Statement(LazyEventDispatcher::class);
+        if (!\class_exists(EventDispatcher::class)) {
+            return;
+        }
 
-        $events = $container->register(
-            $this->prefix('dispatcher'),
-            $container->getParameter('debugMode') ? new Statement(TraceableEventDispatcher::class, [$events]) : $events
-        );
+        $dispatcher = new Statement(EventDispatcher::class);
 
-        if ($container->getParameter('debugMode')) {
-            $events->addSetup([new Reference('Tracy\Bar'), 'addPanel'], [new Statement(EventsPanel::class, [$events])]);
+        if ($lazyDispatcher = \class_exists(LazyEventDispatcher::class)) {
+            $dispatcher = new Statement(LazyEventDispatcher::class);
+
+            if ($container->getParameter('debugMode')) {
+                $dispatcher = new Statement(TraceableEventDispatcher::class, [$dispatcher]);
+            }
+        }
+
+        $dispatcher = $container->register($this->prefix('dispatcher'), $dispatcher);
+
+        if ($lazyDispatcher && $container->getParameter('debugMode')) {
+            $dispatcher->addSetup(
+                [new Reference('Tracy\Bar'), 'addPanel'],
+                [new Statement(EventsPanel::class, ['@' . TraceableEventDispatcher::class])]
+            );
         }
 
         $events = $this->findClasses($this->getFromConfig('scanDirs'), EventSubscriberInterface::class);
