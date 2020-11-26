@@ -33,6 +33,7 @@ use Nette\DI\Definitions\Statement;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\CommandLoader\ContainerCommandLoader;
 use Symfony\Component\Console\EventListener\ErrorListener;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class TerminalExtension extends Extension
 {
@@ -96,7 +97,10 @@ class TerminalExtension extends Extension
             AboutCommand::class,
         ]);
 
-        $container->register($this->prefix('error_listener'), ErrorListener::class);
+        if ($container->getByType(EventDispatcherInterface::class)) {
+            $container->register($this->prefix('error_listener'), ErrorListener::class);
+        }
+        
         $container->register($this->prefix('app'), ConsoleKernel::class)
             ->addSetup('setCommandLoader')
             ->addSetup('addCommands', [$commands]);
