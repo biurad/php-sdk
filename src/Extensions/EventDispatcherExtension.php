@@ -98,6 +98,10 @@ class EventDispatcherExtension extends Extension
      */
     public function beforeCompile(): void
     {
+        if (!\class_exists(EventDispatcher::class)) {
+            return;
+        }
+        
         $container  = $this->getContainerBuilder();
         $type       = $container->findByType(EventSubscriberInterface::class);
         $dispatcher = $container->getDefinitionByType(EventDispatcherInterface::class);
