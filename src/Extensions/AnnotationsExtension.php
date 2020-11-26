@@ -17,6 +17,7 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Extensions;
 
+use Biurad\Annotations\AnnotationLoader;
 use Biurad\DependencyInjection\Extension;
 use Doctrine\Common\Annotations\AnnotationReader;
 use Doctrine\Common\Annotations\AnnotationRegistry;
@@ -24,8 +25,12 @@ use Doctrine\Common\Annotations\CachedReader;
 use Doctrine\Common\Cache\Cache as DoctrineCache;
 use Nette;
 use Nette\DI\Definitions\Definition;
+use Nette\DI\Definitions\Statement;
 use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\PhpLiteral;
+use Spiral\Attributes\AnnotationReader as DoctrineReader;
+use Spiral\Attributes\AttributeReader;
+use Spiral\Attributes\Composite\MergeReader;
 
 class AnnotationsExtension extends Extension
 {
@@ -35,16 +40,17 @@ class AnnotationsExtension extends Extension
     public function getConfigSchema(): Nette\Schema\Schema
     {
         return Nette\Schema\Expect::structure([
-            'debug'  => Nette\Schema\Expect::bool(false),
-            'ignore' => Nette\Schema\Expect::listOf('string')->default([
+            'resources' => Nette\Schema\Expect::list(),
+            'debug'     => Nette\Schema\Expect::bool(false),
+            'ignore'    => Nette\Schema\Expect::listOf('string')->default([
                 'persistent',
                 'serializationVersion',
             ]),
-            'cache'  => Nette\Schema\Expect::anyOf(
+            'cache'     => Nette\Schema\Expect::anyOf(
                 Nette\Schema\Expect::string(),
                 Nette\Schema\Expect::array(),
                 Nette\Schema\Expect::type(Statement::class)
-            )->default('@Doctrine\Common\Cache\Cache'),
+            ),
         ]);
     }
 
@@ -53,17 +59,30 @@ class AnnotationsExtension extends Extension
      */
     public function loadConfiguration(): void
     {
-        $container        = $this->getContainerBuilder();
+        $container = $this->getContainerBuilder();
+        $doctrine  = \class_exists(AnnotationReader::class) ? DoctrineReader::class : null;
+
+        if (\class_exists(AnnotationLoader::class)) {
+            $reader = new Statement(AttributeReader::class);
+
+            if (null !== $doctrine) {
+                $reader =  new Statement(MergeReader::class, [$reader, new Statement(DoctrineReader::class)]);
+            }
+
+            $container->register($this->prefix('loader'), AnnotationLoader::class)
+                ->setArgument('reader', $reader)
+                ->addSetup('?->attach(...?)', ['@self', $this->config->resources]);
+        }
+
+        if (null === $doctrine) {
+            return;
+        }
+
         $readerDefinition = $container->register($this->prefix('delegated'), AnnotationReader::class);
 
         foreach ($this->config->ignore as $annotationName) {
             $readerDefinition->addSetup('addGlobalIgnoredName', [$annotationName]);
             AnnotationReader::addGlobalIgnoredName($annotationName);
-        }
-
-        // doctrine/annotations ^1.0 compatibility.
-        if (\method_exists(AnnotationRegistry::class, 'registerLoader')) {
-            AnnotationRegistry::registerLoader('\\class_exists');
         }
     }
 
@@ -79,7 +98,8 @@ class AnnotationsExtension extends Extension
         if ($container->getByType(DoctrineCache::class)) {
             $readerDefinition->setAutowired(false);
             $cacheName       = $this->prefix('cache');
-            $cacheDefinition = $this->getHelper()->getDefinitionFromConfig($config->cache, $cacheName);
+            $cacheDefinition = $this->getHelper()
+                ->getDefinitionFromConfig($config->cache ?? '@Doctrine\Common\Cache\Cache', $cacheName);
 
             // If service is extension specific, then disable autowiring
             if ($cacheDefinition instanceof Definition && $cacheName === $cacheDefinition->getName()) {
@@ -97,6 +117,10 @@ class AnnotationsExtension extends Extension
     public function afterCompile(ClassType $classType): void
     {
         $initialize = $this->initialization;
+
+        if (!\class_exists(AnnotationReader::class)) {
+            return;
+        }
 
         // doctrine/annotations ^1.0 compatibility.
         if (\method_exists(AnnotationRegistry::class, 'registerLoader')) {
