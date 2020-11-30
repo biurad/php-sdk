@@ -17,16 +17,16 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Extensions;
 
+use Biurad\DependencyInjection\Extension;
 use Biurad\Framework\Commands\AboutCommand;
 use Biurad\Framework\Commands\CacheCleanCommand;
 use Biurad\Framework\Commands\RouteListCommand;
 use Biurad\Framework\Commands\ServerRunCommand;
 use Biurad\Framework\Commands\ServerStartCommand;
 use Biurad\Framework\Commands\ServerStopCommand;
-use Biurad\DependencyInjection\Extension;
 use Biurad\Framework\Kernels\ConsoleKernel;
-use Flight\Routing\Interfaces\RouteCollectorInterface;
-use Flight\Routing\RouteLoader;
+use Doctrine\Common\Cache\Cache as DoctrineCache;
+use Flight\Routing\Router;
 use Nette;
 use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\Statement;
@@ -76,31 +76,32 @@ class TerminalExtension extends Extension
         }
 
         $commands = $this->addCommands([
-            new Statement(
-                CacheCleanCommand::class,
-                [
-                    1 => $container->getParameter('tempDir') . '/cache',
-                    2 => $container->getParameter('tempDir') . '/logs',
-                ]
-            ),
-            new Statement(
-                RouteListCommand::class,
-                [
-                    $container->getByType(RouteLoader::class)
-                        ? new Reference(RouteLoader::class)
-                        : new Reference(RouteCollectorInterface::class),
-                ]
-            ),
+            new Statement(RouteListCommand::class, [new Reference(Router::class)]),
             new Statement(ServerRunCommand::class, [$this->getFromConfig('server_root'), $container->getParameter('envMode')]),
             new Statement(ServerStartCommand::class, [$this->getFromConfig('server_root'), $container->getParameter('envMode')]),
             ServerStopCommand::class,
             AboutCommand::class,
         ]);
 
-        if ($container->getByType(EventDispatcherInterface::class)) {
+        if (\interface_exists(DoctrineCache::class) && $container->getByType(DoctrineCache::class)) {
+            $commands[] = new Statement(
+                CacheCleanCommand::class,
+                [
+                    1 => $container->getParameter('tempDir') . '/cache',
+                    2 => $container->getParameter('tempDir') . '/logs',
+                ]
+            );
+        }
+
+        if (
+            \interface_exists(EventDispatcherInterface::class) &&
+            $container->getByType(EventDispatcherInterface::class)
+        ) {
             $container->register($this->prefix('error_listener'), ErrorListener::class);
         }
-        
+
+        $commands = $this->addCommands($commands);
+
         $container->register($this->prefix('app'), ConsoleKernel::class)
             ->addSetup('setCommandLoader')
             ->addSetup('addCommands', [$commands]);
