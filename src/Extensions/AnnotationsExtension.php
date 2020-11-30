@@ -18,6 +18,8 @@ declare(strict_types=1);
 namespace Biurad\Framework\Extensions;
 
 use Biurad\Annotations\AnnotationLoader;
+use Biurad\Annotations\ListenerInterface;
+use Biurad\Annotations\LoaderInterface;
 use Biurad\DependencyInjection\Extension;
 use Doctrine\Common\Annotations\AnnotationReader;
 use Doctrine\Common\Annotations\AnnotationRegistry;
@@ -40,7 +42,9 @@ class AnnotationsExtension extends Extension
     public function getConfigSchema(): Nette\Schema\Schema
     {
         return Nette\Schema\Expect::structure([
-            'resources' => Nette\Schema\Expect::list(),
+            'resources' => Nette\Schema\Expect::list()->before(function ($value) {
+                return is_string($value) ? [$value] : $value;
+            }),
             'debug'     => Nette\Schema\Expect::bool(false),
             'ignore'    => Nette\Schema\Expect::listOf('string')->default([
                 'persistent',
@@ -66,7 +70,7 @@ class AnnotationsExtension extends Extension
             $reader = new Statement(AttributeReader::class);
 
             if (null !== $doctrine) {
-                $reader =  new Statement(MergeReader::class, [$reader, new Statement(DoctrineReader::class)]);
+                $reader =  new Statement(MergeReader::class, [[$reader, new Statement(DoctrineReader::class)]]);
             }
 
             $container->register($this->prefix('loader'), AnnotationLoader::class)
@@ -95,7 +99,7 @@ class AnnotationsExtension extends Extension
         $config           = $this->config;
         $readerDefinition = $container->getDefinition($this->prefix('delegated'));
 
-        if ($container->getByType(DoctrineCache::class)) {
+        if (\class_exists(DoctrineCache::class) && $container->getByType(DoctrineCache::class)) {
             $readerDefinition->setAutowired(false);
             $cacheName       = $this->prefix('cache');
             $cacheDefinition = $this->getHelper()
@@ -109,6 +113,14 @@ class AnnotationsExtension extends Extension
             $container->register($this->prefix('reader'), CachedReader::class)
                 ->setArguments([$readerDefinition, $cacheDefinition, $config->debug]);
         }
+
+        // Load annotation listeners ...
+        $listeners = $container->findByType(ListenerInterface::class);
+        $container->getDefinitionByType(LoaderInterface::class)
+            ->addSetup(
+                '?->attachListener(...?)',
+                ['@self', $this->getHelper()->getServiceDefinitionsFromDefinitions($listeners)]
+            );
     }
 
     /**
