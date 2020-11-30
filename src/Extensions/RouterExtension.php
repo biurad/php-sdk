@@ -17,8 +17,9 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Extensions;
 
-use Biurad\Framework\Debug\Route\RoutesPanel;
+use Biurad\Annotations\AnnotationLoader;
 use Biurad\DependencyInjection\Extension;
+use Biurad\Framework\Debug\Route\RoutesPanel;
 use Biurad\Framework\DependencyInjection\XmlAdapter;
 use Biurad\Framework\ExtensionLoader;
 use Biurad\Framework\Listeners\EventRouteListener;
@@ -29,11 +30,10 @@ use Biurad\Http\Middlewares\CookiesMiddleware;
 use Biurad\Http\Middlewares\ErrorHandlerMiddleware;
 use Biurad\Http\Middlewares\HttpMiddleware;
 use Biurad\Http\Middlewares\SessionMiddleware;
-use Doctrine\Common\Annotations\Reader;
+use Flight\Routing\Annotation\Listener;
 use Flight\Routing\Interfaces\RouteListenerInterface;
 use Flight\Routing\Middlewares\PathMiddleware;
 use Flight\Routing\RouteCollector;
-use Flight\Routing\RouteLoader;
 use Flight\Routing\RoutePipeline;
 use Flight\Routing\Router as FlightRouter;
 use Nette;
@@ -43,6 +43,7 @@ use Nette\DI\Definitions\ServiceDefinition;
 use Nette\DI\Definitions\Statement;
 use Nette\PhpGenerator\PhpLiteral;
 use Nette\Schema\Expect;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class RouterExtension extends Extension
 {
@@ -53,9 +54,6 @@ class RouterExtension extends Extension
     {
         return Nette\Schema\Expect::structure([
             'namespace'             => Nette\Schema\Expect::string()->default(null),
-            'matcher'               => Expect::anyOf(Expect::string(), Expect::object())->before(function ($value) {
-                return (\is_string($value) && \class_exists($value)) ? new Statement($value) : $value;
-            }),
             'defaults'              => Nette\Schema\Expect::array()->before(function ($value) {
                 return \is_string($value) ? [$value] : $value;
             }),
@@ -63,9 +61,6 @@ class RouterExtension extends Extension
                 return \is_string($value) ? [$value] : $value;
             }),
             'middlewares'           => Expect::array()->before(function ($value) {
-                return \is_string($value) ? [$value] : $value;
-            }),
-            'resources'             => Nette\Schema\Expect::list()->before(function ($value) {
                 return \is_string($value) ? [$value] : $value;
             }),
             'shortcut'              => Expect::arrayOf(
@@ -109,36 +104,42 @@ class RouterExtension extends Extension
     public function loadConfiguration(): void
     {
         $container = $this->getContainerBuilder();
-        $matcher   = $this->getFromConfig('matcher');
 
         $this->addRoute(
             $container->register($this->prefix('collector'), RouteCollector::class),
             $this->getFromConfig('shortcut')
         );
 
-        // Added Annotations support
-        $container->register($this->prefix('loader'), RouteLoader::class)
-            ->setArgument('reader', \interface_exists(Reader::class) ? new Reference(Reader::class) : null)
-            ->addSetup('attachArray', [$this->getFromConfig('resources')]);
-
-        $container->register($this->prefix('route_listener'), EventRouteListener::class);
+        if (
+            \interface_exists(EventDispatcherInterface::class) &&
+            $container->getByType(EventDispatcherInterface::class)
+        ) {
+            $container->register($this->prefix('route_listener'), EventRouteListener::class);
+        }
 
         $router = $container->register($this->prefix('factory'), FlightRouter::class)
-            ->setArgument('matcher', \is_string($matcher) ? new Reference($matcher) : $matcher)
+            ->setArgument('profileRoutes', $container->getParameter('debugMode'))
             ->addSetup('addParameters', [$this->getFromConfig('requirements')])
-            ->addSetup('addParameters', [$this->getFromConfig('defaults'), FlightRouter::TYPE_DEFAULT]);
+            ->addSetup('addParameters', [
+                $this->getFromConfig('defaults'),
+                new PhpLiteral('Flight\Routing\Router::TYPE_DEFAULT'),
+            ]);
 
         if (null !== $this->getFromConfig('namespace')) {
             $router->addSetup('setNamespace', [$this->getFromConfig('namespace')]);
         }
 
-        if ($container->getParameter('debugMode')) {
-            $router->addSetup('setProfiler');
+        if (
+            \class_exists(AnnotationLoader::class) &&
+            null !== $container->getByType(AnnotationLoader::class)
+        ) {
+            $router->addSetup('loadAnnotation');
+            $container->register($this->prefix('annotation_listener'), Listener::class);
+        } else {
+            $router->addSetup('?->addRoute(??)', [
+                '@self', new PhpLiteral('...'), new Statement([new Reference($this->prefix('collector')), 'getCollection']),
+            ]);
         }
-
-        $router->addSetup('?->addRoute(??)', [
-            '@self', new PhpLiteral('...'), new Statement([new Reference($this->prefix('loader')), 'load']),
-        ]);
 
         $middlewares = \array_merge(
             [

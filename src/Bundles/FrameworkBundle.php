@@ -22,7 +22,6 @@ use Biurad\Framework\Extensions\FrameworkExtension;
 use Biurad\Framework\Interfaces\KernelInterface;
 use Biurad\Framework\Kernels\EventsKernel;
 use Biurad\Http\Factories\GuzzleHttpPsr7Factory;
-use Flight\Routing\Publisher;
 use Laminas\HttpHandlerRunner\Emitter\SapiStreamEmitter;
 use Nette\DI\ContainerBuilder;
 use Psr\Http\Message\ResponseInterface;
@@ -33,16 +32,17 @@ class FrameworkBundle extends Bundle
 {
     public function boot(): void
     {
-        $kernel   = $this->container->get(KernelInterface::class);
-        $request  = GuzzleHttpPsr7Factory::fromGlobalRequest();
-        $response = $kernel->serve($request);
+        if (null !== $kernel = $this->container->getByType(KernelInterface::class)) {
+            $request  = GuzzleHttpPsr7Factory::fromGlobalRequest();
+            $response = $kernel->serve($request);
 
-        if ($response instanceof ResponseInterface) {
-            // Send response to  the browser...
-            (new Publisher())->publish($response, new SapiStreamEmitter());
+            if ($response instanceof ResponseInterface) {
+                // Send response to  the browser...
+                (new SapiStreamEmitter())->emit($response);
 
-            if ($kernel instanceof EventsKernel) {
-                $kernel->terminate($request, $response);
+                if ($kernel instanceof EventsKernel) {
+                    $kernel->terminate($request, $response);
+                }
             }
         }
     }

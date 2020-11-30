@@ -22,7 +22,7 @@ use DivineNii\Invoker\CallableResolver;
 use DivineNii\Invoker\Interfaces\InvokerInterface;
 use Flight\Routing\Interfaces\RouteCollectorInterface;
 use Flight\Routing\Interfaces\RouteInterface;
-use Flight\Routing\RouteLoader;
+use Flight\Routing\Router;
 use Psr\Http\Server\RequestHandlerInterface;
 use ReflectionException;
 use ReflectionFunction;
@@ -36,8 +36,8 @@ class RouteListCommand extends Command
 {
     public static $defaultName = 'app:routes';
 
-    /** @var RouteCollectorInterface|RouteLoader */
-    private $collector;
+    /** @var Router */
+    private $router;
 
     /** @var CallableResolver */
     private $callable;
@@ -46,13 +46,13 @@ class RouteListCommand extends Command
     private $table;
 
     /**
-     * @param RouteCollectorInterface|RouteLoader $collector
-     * @param InvokerInterface                    $invoker
+     * @param Router           $collector
+     * @param InvokerInterface $invoker
      */
-    public function __construct($collector, InvokerInterface $invoker)
+    public function __construct(Router $router, InvokerInterface $invoker)
     {
-        $this->collector = $collector;
-        $this->callable  = $invoker->getCallableResolver();
+        $this->router   = $router;
+        $this->callable = $invoker->getCallableResolver();
 
         parent::__construct();
     }
@@ -82,9 +82,8 @@ EOT
     {
         $this->table = new Table($output);
         $grid        = $this->table->setHeaders(['Name:', 'Verbs:', 'Pattern:', 'Target:']);
-        $collection  = $this->collector instanceof RouteLoader ? $this->collector->load() : $this->collector->getCollection();
 
-        foreach ($collection as $route) {
+        foreach ($this->router->getRoutes() as $route) {
             if ($route instanceof RouteInterface) {
                 $grid->addRow(
                     [

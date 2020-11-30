@@ -21,7 +21,7 @@ use Biurad\Framework\Debug\Template\TemplatesPanel;
 use Closure;
 use DivineNii\Invoker\CallableResolver;
 use Flight\Routing\Interfaces\RouteInterface;
-use Flight\Routing\ProfileRoute;
+use Flight\Routing\DebugRoute;
 use Flight\Routing\Router;
 use Nette;
 use Nette\Utils\Callback;
@@ -50,7 +50,7 @@ final class RoutesPanel implements Tracy\IBarPanel
     /** @var float */
     protected $duration = 0;
 
-    /** @var ProfileRoute */
+    /** @var DebugRoute */
     private $profiler;
 
     /** @var array */
@@ -119,7 +119,7 @@ final class RoutesPanel implements Tracy\IBarPanel
         return isset($method) && $rc->hasMethod($method) ? $rc->getMethod($method) : $rc;
     }
 
-    private function processData(ProfileRoute $profile): void
+    private function processData(DebugRoute $profile): void
     {
         if ($profile->isRoute()) {
             $this->routeCount += 1;
