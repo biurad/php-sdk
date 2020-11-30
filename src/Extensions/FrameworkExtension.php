@@ -17,10 +17,6 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Extensions;
 
-use Biurad\Cache\AdapterFactory;
-use Biurad\Cache\CacheItemPool;
-use Biurad\Cache\SimpleCache;
-use Biurad\Cache\TagAwareCache;
 use Biurad\DependencyInjection\Extension;
 use Biurad\Framework\Dispatchers\CliDispatcher;
 use Biurad\Framework\Dispatchers\HttpDispatcher;
@@ -28,8 +24,6 @@ use Biurad\Framework\ExtensionLoader;
 use Biurad\Framework\Interfaces\KernelInterface;
 use Biurad\Framework\Kernels\EventsKernel;
 use Biurad\Framework\Kernels\HttpKernel;
-use Cache\Adapter\Doctrine\DoctrineCachePool;
-use Doctrine\Common\Cache\Cache as DoctrineCache;
 use Nette;
 use Nette\DI\Definitions\Statement;
 use Nette\Schema\Expect;
@@ -57,26 +51,7 @@ class FrameworkExtension extends Extension
      */
     public function loadConfiguration(): void
     {
-        $container   = $this->getContainerBuilder();
-
-        // Cache ...
-        if (\class_exists(SimpleCache::class)) {
-            $container->register(
-                $this->prefix('cache_doctrine'),
-                new Statement(
-                    [AdapterFactory::class, 'createHandler'],
-                    [$this->getFromConfig('cache_driver')]
-                )
-            )->setType(DoctrineCache::class);
-
-            if (\class_exists(DoctrineCachePool::class)) {
-                $container->register($this->prefix('cache_psr6'), TagAwareCache::class);
-            } else {
-                $container->register($this->prefix('cache_psr6'), CacheItemPool::class);
-            }
-
-            $container->register($this->prefix('cache_psr16'), SimpleCache::class);
-        }
+        $container = $this->getContainerBuilder();
 
         foreach ($this->compiler->getExtensions() as $name => $extension) {
             foreach ($this->getFromConfig('imports') as $resource) {
@@ -99,10 +74,10 @@ class FrameworkExtension extends Extension
             '@self',
             \array_map(
                 function (string $dispatcher) {
-                return new Statement($dispatcher);
-            },
+                    return new Statement($dispatcher);
+                },
                 $this->getFromConfig('dispatchers')
-            )]);
+            ), ]);
 
         $container->addAlias('application', $this->prefix('app'));
     }

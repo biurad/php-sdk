@@ -80,6 +80,7 @@ class ExtensionLoader
         'aware'         => Contributte\DI\Extension\ContainerAwareExtension::class,
         'autoload'      => Contributte\DI\Extension\ResourceExtension::class,
         'callable'      => Biurad\Framework\Extensions\InvokerExtension::class,
+        'cache'         => Biurad\Framework\Extensions\CacheExtension::class,
         'annotation'    => Biurad\Framework\Extensions\AnnotationsExtension::class,
         'events'        => [Biurad\Framework\Extensions\EventDispatcherExtension::class, ['%appDir%']],
         'http'          => [Biurad\Framework\Extensions\HttpExtension::class, ['%tempDir%/session']],
