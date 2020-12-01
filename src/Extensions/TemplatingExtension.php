@@ -73,6 +73,10 @@ class TemplatingExtension extends Extension
     {
         $container = $this->getContainerBuilder();
 
+        if (!class_exists(Template::class)) {
+            return;
+        }
+
         $filesystemLoader = new Statement(FilesystemStorage::class, [$this->getFromConfig('paths')]);
         $cacheLoader      = new Statement(CacheStorage::class, [$filesystemLoader, $this->getFromConfig('cache_path')]);
         $cacheTemplates   = null !== $this->getFromConfig('cache_path');
@@ -131,6 +135,10 @@ class TemplatingExtension extends Extension
      */
     public function beforeCompile(): void
     {
+        if (!interface_exists(RenderInterface::class)) {
+            return;
+        }
+
         $container  = $this->getContainerBuilder();
         $type       = $container->findByType(RenderInterface::class);
         $template   = $container->getDefinitionByType(TemplateInterface::class);
