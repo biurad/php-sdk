@@ -38,6 +38,7 @@
     "require-dev": {
         "biurad/annotations": "^1.x-dev",
         "biurad/cache": "1.x-dev",
+        "biurad/cycle-bridge": "1.x-dev",
         "biurad/events-bus": "1.x-dev",
         "biurad/flysystem": "1.x-dev",
         "biurad/templating": "1.x-dev",
