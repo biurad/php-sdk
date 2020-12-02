@@ -43,7 +43,7 @@ class AnnotationsExtension extends Extension
     {
         return Nette\Schema\Expect::structure([
             'resources' => Nette\Schema\Expect::list()->before(function ($value) {
-                return is_string($value) ? [$value] : $value;
+                return \is_string($value) ? [$value] : $value;
             }),
             'debug'     => Nette\Schema\Expect::bool(false),
             'ignore'    => Nette\Schema\Expect::listOf('string')->default([
@@ -116,12 +116,14 @@ class AnnotationsExtension extends Extension
         }
 
         // Load annotation listeners ...
-        $listeners = $container->findByType(ListenerInterface::class);
-        $container->getDefinitionByType(LoaderInterface::class)
+        if ($container->getByType(LoaderInterface::class)) {
+            $listeners = $container->findByType(ListenerInterface::class);
+            $container->getDefinitionByType(LoaderInterface::class)
             ->addSetup(
                 '?->attachListener(...?)',
                 ['@self', $this->getHelper()->getServiceDefinitionsFromDefinitions($listeners)]
             );
+        }
     }
 
     /**

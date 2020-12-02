@@ -74,9 +74,11 @@ final class DIExtension extends Nette\DI\CompilerExtension
         $builder = $this->getContainerBuilder();
         $builder->addExcludedClasses($this->config->excluded);
 
-        $builder->addDefinition($this->prefix('command_debug'))
-            ->setFactory(ContainerCommand::class)
-            ->addTag('console.command', 'debug:container');
+        if ($builder->parameters['consoleMode']) {
+            $builder->addDefinition($this->prefix('command_debug'))
+                ->setFactory(ContainerCommand::class)
+                ->addTag('console.command', 'debug:container');
+        }
     }
 
     public function beforeCompile(): void
