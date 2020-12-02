@@ -17,17 +17,16 @@ declare(strict_types=1);
 
 namespace Biurad\Framework;
 
-use ArrayAccess;
-use ArrayIterator;
-use IteratorAggregate;
+use ArrayObject;
+use Closure;
 use Nette\Schema;
 use RuntimeException;
 
-class Directory implements IteratorAggregate, ArrayAccess
+class Directory extends ArrayObject
 {
-    /** @var array<string,string> */
-    private $directories;
-
+    /**
+     * @param array<string,string> $directories
+     */
     public function __construct(array $directories)
     {
         $schema = Schema\Expect::structure([
@@ -36,9 +35,7 @@ class Directory implements IteratorAggregate, ArrayAccess
             'tempDir'    => Schema\Expect::string()->required(),
             'logDir'     => Schema\Expect::string(),
             'envFile'    => Schema\Expect::string(),
-            'bundleFile' => Schema\Expect::string(),
-            'bundles'    => Schema\Expect::listOf('string|object'),
-        ])->before([$this, 'resolveDirectories'])
+        ])->before(Closure::fromCallable([$this, 'resolveDirectories']))
             ->castTo('array');
 
         try {
@@ -47,47 +44,7 @@ class Directory implements IteratorAggregate, ArrayAccess
             throw new RuntimeException('Data are not valid: ' . $e->getMessage());
         }
 
-        $this->directories = $normalized;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getIterator()
-    {
-        return new ArrayIterator($this->directories);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function offsetGet($offset)
-    {
-        return $this->directories[$offset] ?? null;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function offsetSet($offset, $value)
-    {
-        return $this->directories[$offset] = $value;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function offsetExists($offset)
-    {
-        return isset($this->directories[$offset]);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function offsetUnset($offset): void
-    {
-        unset($this->directories[$offset]);
+        parent::__construct($normalized, ArrayObject::ARRAY_AS_PROPS);
     }
 
     /**
@@ -95,7 +52,7 @@ class Directory implements IteratorAggregate, ArrayAccess
      *
      * @return array<string,mixed>
      */
-    public function resolveDirectories(array $directories): array
+    private function resolveDirectories(array $directories): array
     {
         $newDirectories = [];
         $rootPath       = \rtrim($directories['root'], '\\/');
@@ -114,11 +71,6 @@ class Directory implements IteratorAggregate, ArrayAccess
         // Directory to contain logs
         if (\file_exists($logDir = $newDirectories['logDir'] ?? $newDirectories['tempDir'] . '/logs')) {
             $newDirectories['logDir'] = $logDir;
-        }
-
-        // Load bundles if exist
-        if (\file_exists($bundleDir = $newDirectories['bundleFile'] ?? $newDirectories['configDir'] . '/bundles.php')) {
-            $newDirectories['bundles'] = require $bundleDir;
         }
 
         // Environment file ...
