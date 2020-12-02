@@ -52,26 +52,24 @@ abstract class Kernel
      *
      * @param Directory $directories  directory map, "root", "tempDir", and "configDir" is required
      * @param bool      $handleErrors enable global error handling
-     * @param bool      $return       If set to true, container instance will return
      *
      * @throws Throwable
      *
-     * @return null|ContainerInterface
+     * @return ContainerInterface
      */
-    abstract public static function boot(Directory $directories, bool $handleErrors = true, bool $return = false);
+    abstract public static function boot(Directory $directories, bool $handleErrors = true);
 
     /**
      * Initiate application core.
      *
      * @param Directory $directories  directory map, "root", "tempDir", and "configDir" is required
      * @param bool      $handleErrors enable global error handling
-     * @param bool      $return       If set to true, container instance will return
      *
      * @throws Throwable
      *
      * @return null|ContainerInterface
      */
-    protected static function initializeApp(Directory $directories, bool $handleErrors = true, bool $return = false)
+    protected static function initializeApp(Directory $directories, bool $handleErrors = true)
     {
         $loader = new ContainerLoader(); // Boot the CoreKenel for processes to begin...
         $loader->setTempDirectory($directories['tempDir']);
@@ -83,19 +81,7 @@ abstract class Kernel
             $loader->enableDebugger($directories['logDir'] ?? null);
         }
 
-        $loader->initializeBundles($directories['bundles'] ?? []);
-        $container = static::initializeContainer($directories, $loader);
-
-        foreach ($loader->getBundles() as $bundle) {
-            $bundle->setContainer($container);
-
-            if (isset($_ENV['PHPUNIT_TESTING']) && false !== $_ENV['PHPUNIT_TESTING']) {
-                break;
-            }
-            $bundle->boot();
-        }
-
-        return $return ? $container : null;
+        return static::initializeContainer($directories, $loader);
     }
 
     /**
@@ -123,6 +109,7 @@ abstract class Kernel
             'envMode'   => $envMode,
             'rootDir'   => $directories['root'],
             'configDir' => $directories['configDir'],
+            'logDir'    => $directories['logDir'],
         ]);
 
         foreach (\glob($config, \GLOB_BRACE) as $configPath) {
