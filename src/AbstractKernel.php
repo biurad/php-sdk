@@ -55,12 +55,6 @@ abstract class AbstractKernel implements KernelInterface
         $this->logger    = $logger;
         $this->container = $dependencyContainer;
         $this->base      = $dependencyContainer->getParameter('rootDir') ?? null;
-
-        /*
-        * Enable the facade system by default.
-        * This doesn't observe the exact facade pattern.
-        */
-        $dependencyContainer->callMethod([Framework::class, 'setFactory']);
     }
 
     /**
