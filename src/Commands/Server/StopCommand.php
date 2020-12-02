@@ -15,8 +15,9 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Biurad\Framework\Commands;
+namespace Biurad\Framework\Commands\Server;
 
+use Biurad\Framework\Commands\WebServer;
 use Exception;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -30,7 +31,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  *
  * @author Christian Flothmann <christian.flothmann@xabbuh.de>
  */
-class ServerStopCommand extends Command
+class StopCommand extends Command
 {
     protected static $defaultName = 'server:stop';
 

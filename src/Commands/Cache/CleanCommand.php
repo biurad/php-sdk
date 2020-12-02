@@ -15,10 +15,8 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Biurad\Framework\Commands;
+namespace Biurad\Framework\Commands\Cache;
 
-use Doctrine\Common\Cache\Cache as DoctrineCache;
-use Doctrine\Common\Cache\FlushableCache;
 use Nette\Utils\FileSystem;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -36,12 +34,9 @@ use Throwable;
  *
  * @final
  */
-class CacheCleanCommand extends Command
+class CleanCommand extends Command
 {
-    public static $defaultName = 'app:clean';
-
-    /** @var DoctrineCache|FlushableCache */
-    private $caching;
+    public static $defaultName = 'cache:clean';
 
     /** @var string */
     private $cacheDirectory;
@@ -49,9 +44,8 @@ class CacheCleanCommand extends Command
     /** @var string */
     private $logsDirectory;
 
-    public function __construct(DoctrineCache $cache, string $cacheDirectory, string $logsDirectory)
+    public function __construct(string $cacheDirectory, string $logsDirectory)
     {
-        $this->caching        = $cache;
         $this->cacheDirectory = $cacheDirectory;
         $this->logsDirectory  = $logsDirectory;
 
@@ -100,11 +94,6 @@ EOT
         if ($output->isVerbose()) {
             $output->writeln('<info>Cleaning application cache:</info>');
             $output->writeln('');
-        }
-
-        // Cleaning Doctrine Cache...
-        if (true !== $this->caching->flushAll()) {
-            $output->writeln('<info>Failed cleaning doctrine cache:</info>');
         }
 
         foreach (\array_filter([$this->cacheDirectory, $logsDirectory]) as $cacheDirectory) {

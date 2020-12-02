@@ -15,7 +15,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Biurad\Framework\Commands;
+namespace Biurad\Framework\Commands\Debug;
 
 use Closure;
 use DivineNii\Invoker\CallableResolver;
@@ -32,9 +32,9 @@ use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class RouteListCommand extends Command
+class RouteCommand extends Command
 {
-    public static $defaultName = 'app:routes';
+    public static $defaultName = 'debug:routes';
 
     /** @var Router */
     private $router;
@@ -68,7 +68,7 @@ class RouteListCommand extends Command
                 <<<'EOT'
 The <info>%command.name%</info> command returns lists of routes in applicatiom.
 
-Any time you add a new route or annotated class, remember to run "app:clean"
+Any time you add a new route or annotated class, remember to run "cache:flush"
 command, even if you want to commit your app to production.
 EOT
             )
