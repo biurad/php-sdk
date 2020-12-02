@@ -20,6 +20,7 @@ namespace Biurad\Framework\Kernels;
 use Biurad\Framework\AbstractKernel;
 use Biurad\Http\Response;
 use GuzzleHttp\Exception\BadResponseException;
+use Laminas\HttpHandlerRunner\Emitter\SapiStreamEmitter;
 use Nette\Utils\Helpers;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -29,6 +30,21 @@ use Throwable;
 
 class HttpKernel extends AbstractKernel
 {
+    /**
+     * {@inheritdoc}
+     */
+    public function serve(ServerRequestInterface $request, bool $catch = true)
+    {
+        $response = parent::serve($request, $catch);
+
+        // Send response to  the browser...
+        if ($response instanceof ResponseInterface) {
+            (new SapiStreamEmitter())->emit($response);
+        }
+
+        return $response;
+    }
+
     /**
      * {@inheritdoc}
      */
@@ -64,11 +80,15 @@ class HttpKernel extends AbstractKernel
             $response = $response->withStatus(500);
         }
 
-        $response->getBody()->write(Helpers::capture(
-            function () use ($request, $e): void {
-                require $this->container->getParameter('env.APP_ERROR_PAGE');
-            }
-        ));
+        if (null !== $errorPage = $this->container->getParameter('env.APP_ERROR_PAGE')) {
+            $response->getBody()->write(
+                Helpers::capture(
+                    function () use ($request, $e, $errorPage): void {
+                        require \sprintf('%s/%s', $this->getBase(), $errorPage);
+                    }
+                )
+            );
+        }
 
         return $response;
     }

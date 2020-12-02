@@ -59,7 +59,9 @@ class EventsKernel extends HttpKernel
         $response = parent::serve($request, $catch);
 
         if ($response instanceof ResponseInterface) {
-            return $this->filterResponse($response, $request);
+            $response = $this->filterResponse($response, $request);
+
+            $this->terminate($request, $response);
         }
     }
 
