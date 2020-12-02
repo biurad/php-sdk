@@ -97,10 +97,11 @@ class AnnotationsExtension extends Extension
     {
         $container        = $this->getContainerBuilder();
         $config           = $this->config;
-        $readerDefinition = $container->getDefinition($this->prefix('delegated'));
 
-        if (\class_exists(DoctrineCache::class) && $container->getByType(DoctrineCache::class)) {
+        if ($container->getByType(DoctrineCache::class)) {
+            $readerDefinition = $container->getDefinition($this->prefix('delegated'));
             $readerDefinition->setAutowired(false);
+
             $cacheName       = $this->prefix('cache');
             $cacheDefinition = $this->getHelper()
                 ->getDefinitionFromConfig($config->cache ?? '@Doctrine\Common\Cache\Cache', $cacheName);

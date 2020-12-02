@@ -27,6 +27,8 @@ use Biurad\Framework\Kernels\HttpKernel;
 use Nette;
 use Nette\DI\Definitions\Statement;
 use Nette\Schema\Expect;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
 class FrameworkExtension extends Extension
@@ -80,5 +82,18 @@ class FrameworkExtension extends Extension
             ), ]);
 
         $container->addAlias('application', $this->prefix('app'));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function beforeCompile()
+    {
+        $container = $this->getContainerBuilder();
+
+        // Incase no logger service ...
+        if (null === $container->getByType(LoggerInterface::class)) {
+            $container->register('logger', NullLogger::class);
+        }
     }
 }

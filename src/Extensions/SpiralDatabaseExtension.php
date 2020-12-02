@@ -17,8 +17,8 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Extensions;
 
-use Biurad\Cycle\Commands\Databse\ListCommand;
-use Biurad\Cycle\Commands\Databse\TableCommand;
+use Biurad\Cycle\Commands\Database\ListCommand;
+use Biurad\Cycle\Commands\Database\TableCommand;
 use Biurad\Cycle\Commands\Migrations\CycleCommand;
 use Biurad\Cycle\Commands\Migrations\InitCommand;
 use Biurad\Cycle\Commands\Migrations\ReplayCommand;

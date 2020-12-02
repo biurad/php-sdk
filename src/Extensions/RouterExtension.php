@@ -19,6 +19,7 @@ namespace Biurad\Framework\Extensions;
 
 use Biurad\Annotations\AnnotationLoader;
 use Biurad\DependencyInjection\Extension;
+use Biurad\Framework\Commands\Debug\RouteCommand;
 use Biurad\Framework\Debug\Route\RoutesPanel;
 use Biurad\Framework\DependencyInjection\XmlAdapter;
 use Biurad\Framework\ExtensionLoader;
@@ -43,6 +44,7 @@ use Nette\DI\Definitions\ServiceDefinition;
 use Nette\DI\Definitions\Statement;
 use Nette\PhpGenerator\PhpLiteral;
 use Nette\Schema\Expect;
+use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class RouterExtension extends Extension
@@ -73,8 +75,9 @@ class RouterExtension extends Extension
                     'mode'          => Nette\Schema\Expect::anyOf('DEPLOY-MODE', 'DEBUG-MODE', null),
                     'controller'    => Expect::anyOf(Expect::string(), Expect::array(), Expect::object()),
                     'domain'        => Nette\Schema\Expect::string(),
-                    'requirements'  => Nette\Schema\Expect::array(),
-                    'defaults'      => Nette\Schema\Expect::array(),
+                    'requirements'  => Nette\Schema\Expect::anyOf(Expect::string(), Expect::array()),
+                    'defaults'      => Nette\Schema\Expect::anyOf(Expect::string(), Expect::array()),
+                    'arguments'     => Nette\Schema\Expect::anyOf(Expect::string(), Expect::array()),
                     'middlewares'   => Expect::anyOf(Expect::array(), Expect::string()),
                 ])
             )->before(function ($values) {
@@ -110,10 +113,7 @@ class RouterExtension extends Extension
             $this->getFromConfig('shortcut')
         );
 
-        if (
-            \interface_exists(EventDispatcherInterface::class) &&
-            $container->getByType(EventDispatcherInterface::class)
-        ) {
+        if ($container->getByType(EventDispatcherInterface::class)) {
             $container->register($this->prefix('route_listener'), EventRouteListener::class);
         }
 
@@ -129,10 +129,7 @@ class RouterExtension extends Extension
             $router->addSetup('setNamespace', [$this->getFromConfig('namespace')]);
         }
 
-        if (
-            \class_exists(AnnotationLoader::class) &&
-            null !== $container->getByType(AnnotationLoader::class)
-        ) {
+        if ($container->getByType(AnnotationLoader::class)) {
             $router->addSetup('loadAnnotation');
             $container->register($this->prefix('annotation_listener'), Listener::class);
         } else {
@@ -144,7 +141,7 @@ class RouterExtension extends Extension
         $middlewares = \array_merge(
             [
                 ErrorHandlerMiddleware::class,
-                CacheControlMiddleware::class,
+                $container->getByType(CacheItemPoolInterface::class) ? CacheControlMiddleware::class : null,
                 CookiesMiddleware::class,
                 SessionMiddleware::class,
                 AccessControlMiddleware::class,
@@ -162,9 +159,14 @@ class RouterExtension extends Extension
                     }
 
                     return  $middleware;
-                }, $middlewares),
+                }, \array_filter($middlewares)),
             ])
             ->addSetup([new Reference('Tracy\Bar'), 'addPanel'], [new Statement(RoutesPanel::class, [$router])]);
+
+        if ($container->getParameter('consoleMode')) {
+            $container->register($this->prefix('command_debug'), RouteCommand::class)
+                ->addTag('console.command', 'debug:routes');
+        }
 
         $container->addAlias('router', $this->prefix('pipeline'));
     }
@@ -220,16 +222,18 @@ class RouterExtension extends Extension
             $host         = null !== $route->domain
                 ? $container->formatPhp('->setDomain(?)', [$route->domain]) : null;
             $defaults     = !empty($route->defaults)
-                ? $container->formatPhp('->setDefaults(?)', [$route->defaults]) : null;
+                ? $container->formatPhp('->setDefaults(?)', [$this->resolveArugments($route->defaults)]) : null;
             $requirements = !empty($route->requirements)
-                ? $container->formatPhp('->setPatterns(?)', [$route->requirements]) : null;
+                ? $container->formatPhp('->setPatterns(?)', [$this->resolveArugments($route->requirements)]) : null;
             $middlewares  = !empty($route->middlewares)
                 ? $container->formatPhp('->addMiddleware(...?)', [$route->middlewares]) : null;
+            $arguments    = null !== $route->arguments
+                ? $container->formatPhp('->setArguments(?)', [$this->resolveArugments($route->arguments)]) : null;
 
             // Route on debug mode
             if ($container->getParameter('debugMode') && $route->mode == 'DEBUG-MODE') {
                 $collector->addSetup(
-                    "?->map(?, ?, ?, ?){$host}{$middlewares}{$defaults}{$requirements}",
+                    "?->map(?, ?, ?, ?){$host}{$middlewares}{$defaults}{$requirements}{$arguments}",
                     ['@self', $name, $methods, $route->path, $route->controller]
                 );
 
@@ -239,7 +243,7 @@ class RouterExtension extends Extension
             // Route on deploy mode
             if ($container->getParameter('productionMode') && $route->mode == 'DEPLOY-MODE') {
                 $collector->addSetup(
-                    "?->map(?, ?, ?, ?){$host}{$middlewares}{$defaults}{$requirements}",
+                    "?->map(?, ?, ?, ?){$host}{$middlewares}{$defaults}{$requirements}{$arguments}",
                     ['@self', $name, $methods, $route->path, $route->controller]
                 );
 
@@ -249,10 +253,34 @@ class RouterExtension extends Extension
             // Route on all mode
             if (null === $route->mode) {
                 $collector->addSetup(
-                    "?->map(?, ?, ?, ?){$host}{$middlewares}{$defaults}{$requirements}",
+                    "?->map(?, ?, ?, ?){$host}{$middlewares}{$defaults}{$requirements}{$arguments}",
                     ['@self', $name, $methods, $route->path, $route->controller]
                 );
             }
         }
+    }
+
+    /**
+     * @param array<string,mixed>|string $arguments
+     *
+     * @return array<string,mixed>
+     */
+    private function resolveArugments($arguments): array
+    {
+        if (\is_array($arguments)) {
+            return $arguments;
+        }
+
+        $arguments    = \explode(', ', \trim($arguments, '[]'));
+        $newArguments = [];
+
+        foreach ($arguments as $argument) {
+            $values = \explode(' => ', $argument);
+
+            // Found an argument
+            $newArguments[$values[0]] = $values[1];
+        }
+
+        return $newArguments;
     }
 }

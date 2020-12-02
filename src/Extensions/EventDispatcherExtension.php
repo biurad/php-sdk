@@ -20,6 +20,7 @@ namespace Biurad\Framework\Extensions;
 use Biurad\DependencyInjection\Extension;
 use Biurad\Events\LazyEventDispatcher;
 use Biurad\Events\TraceableEventDispatcher;
+use Biurad\Framework\Commands\Debug\EventCommand;
 use Biurad\Framework\Debug\Event\EventsPanel;
 use Nette;
 use Nette\DI\Definitions\Reference;
@@ -70,7 +71,7 @@ class EventDispatcherExtension extends Extension
         if ($lazyDispatcher = \class_exists(LazyEventDispatcher::class)) {
             $dispatcher = new Statement(LazyEventDispatcher::class);
 
-            if ($container->getParameter('debugMode')) {
+            if ($container->getParameter('debugMode') || $container->getParameter('consoleMode')) {
                 $dispatcher = new Statement(TraceableEventDispatcher::class, [$dispatcher]);
             }
         }
@@ -90,6 +91,11 @@ class EventDispatcherExtension extends Extension
             $container->register($this->prefix('subscriber.' . $index++), $eventClass);
         }
 
+        if ($container->getParameter('consoleMode')) {
+            $container->register($this->prefix('command_debug'), EventCommand::class)
+                ->addTag('console.command', 'debug:events');
+        }
+
         $container->addAlias('events', $this->prefix('dispatcher'));
     }
 
@@ -101,7 +107,7 @@ class EventDispatcherExtension extends Extension
         if (!\class_exists(EventDispatcher::class)) {
             return;
         }
-        
+
         $container  = $this->getContainerBuilder();
         $type       = $container->findByType(EventSubscriberInterface::class);
         $dispatcher = $container->getDefinitionByType(EventDispatcherInterface::class);

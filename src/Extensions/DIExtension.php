@@ -18,6 +18,7 @@ declare(strict_types=1);
 namespace Biurad\Framework\Extensions;
 
 use Biurad\DependencyInjection\ContainerPanel;
+use Biurad\Framework\Commands\Debug\ContainerCommand;
 use Nette;
 
 /**
@@ -72,6 +73,10 @@ final class DIExtension extends Nette\DI\CompilerExtension
     {
         $builder = $this->getContainerBuilder();
         $builder->addExcludedClasses($this->config->excluded);
+
+        $builder->addDefinition($this->prefix('command_debug'))
+            ->setFactory(ContainerCommand::class)
+            ->addTag('console.command', 'debug:container');
     }
 
     public function beforeCompile(): void

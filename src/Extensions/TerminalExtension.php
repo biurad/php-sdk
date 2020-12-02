@@ -19,14 +19,13 @@ namespace Biurad\Framework\Extensions;
 
 use Biurad\DependencyInjection\Extension;
 use Biurad\Framework\Commands\AboutCommand;
-use Biurad\Framework\Commands\CacheCleanCommand;
-use Biurad\Framework\Commands\RouteListCommand;
-use Biurad\Framework\Commands\ServerRunCommand;
-use Biurad\Framework\Commands\ServerStartCommand;
-use Biurad\Framework\Commands\ServerStopCommand;
+use Biurad\Framework\Commands\Cache\CleanCommand;
+use Biurad\Framework\Commands\Cache\FlushCommand;
+use Biurad\Framework\Commands\Server\RunCommand;
+use Biurad\Framework\Commands\Server\StartCommand;
+use Biurad\Framework\Commands\Server\StopCommand;
 use Biurad\Framework\Kernels\ConsoleKernel;
 use Doctrine\Common\Cache\Cache as DoctrineCache;
-use Flight\Routing\Router;
 use Nette;
 use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\Statement;
@@ -75,29 +74,16 @@ class TerminalExtension extends Extension
             return;
         }
 
-        $commands = $this->addCommands([
-            new Statement(RouteListCommand::class, [new Reference(Router::class)]),
-            new Statement(ServerRunCommand::class, [$this->getFromConfig('server_root'), $container->getParameter('envMode')]),
-            new Statement(ServerStartCommand::class, [$this->getFromConfig('server_root'), $container->getParameter('envMode')]),
-            ServerStopCommand::class,
-            AboutCommand::class,
-        ]);
+        $commands = [
+            new Statement(RunCommand::class, [$this->getFromConfig('server_root'), $container->getParameter('envMode')]),
+            new Statement(StartCommand::class, [$this->getFromConfig('server_root'), $container->getParameter('envMode')]),
+            new Statement(CleanCommand::class, [$container->getParameter('tempDir') . '/cache', $container->getParameter('logDir')]),
+            new Statement(StopCommand::class),
+            new Statement(AboutCommand::class),
+        ];
 
-        if (\interface_exists(DoctrineCache::class) && $container->getByType(DoctrineCache::class)) {
-            $commands[] = new Statement(
-                CacheCleanCommand::class,
-                [
-                    1 => $container->getParameter('tempDir') . '/cache',
-                    2 => $container->getParameter('tempDir') . '/logs',
-                ]
-            );
-        }
-
-        if (
-            \interface_exists(EventDispatcherInterface::class) &&
-            $container->getByType(EventDispatcherInterface::class)
-        ) {
-            $container->register($this->prefix('error_listener'), ErrorListener::class);
+        if ($container->getByType(DoctrineCache::class)) {
+            $commands[] = new Statement(FlushCommand::class);
         }
 
         $commands = $this->addCommands($commands);
@@ -111,6 +97,10 @@ class TerminalExtension extends Extension
         foreach ($commands as $command) {
             $container->register($this->prefix('command.' . $index++), $command)
                 ->addTag('console.command', $command::getDefaultName());
+        }
+
+        if ($container->getByType(EventDispatcherInterface::class)) {
+            $container->register($this->prefix('error_listener'), ErrorListener::class);
         }
     }
 

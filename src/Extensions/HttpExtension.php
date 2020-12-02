@@ -33,6 +33,7 @@ use Biurad\Http\Strategies\QueueingCookie;
 use Nette;
 use Nette\DI\Definitions\Statement;
 use Nette\Schema\Expect;
+use Psr\Cache\CacheItemPoolInterface;
 
 class HttpExtension extends Extension
 {
@@ -135,8 +136,10 @@ class HttpExtension extends Extension
                 \array_flip(['policies', 'headers'])
             ));
 
-        $container->register($this->prefix('cache_control'), CacheControlMiddleware::class)
-            ->setArgument('config', $this->getFromConfig('caching'));
+        if ($container->getByType(CacheItemPoolInterface::class)) {
+            $container->register($this->prefix('cache_control'), CacheControlMiddleware::class)
+                ->setArgument('config', $this->getFromConfig('caching'));
+        }
 
         $sessionOptions = $this->getFromConfig('sessions.options');
 
