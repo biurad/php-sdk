@@ -17,58 +17,73 @@ declare(strict_types=1);
 
 namespace Biurad\Framework;
 
-use Biurad\Framework\Extensions\BundlesExtension;
+use ArrayAccess;
+use Biurad;
 use Biurad\DependencyInjection\Loader;
 use Biurad\DependencyInjection\XmlAdapter;
-use Biurad\Framework\Interfaces\BundleInterface;
+use Closure;
 use Composer\Autoload\ClassLoader;
-use LogicException;
+use Contributte;
+use Countable;
+use Iterator;
+use IteratorAggregate;
+use JsonSerializable;
+use Nette;
 use Nette\Configurator;
 use Nette\DI;
 use Nette\DI\Config\Adapters\NeonAdapter;
 use Nette\Neon;
-use Nette\PhpGenerator\Helpers;
 use Nette\Utils\FileSystem;
 use Psr\Container\ContainerInterface;
 use ReflectionClass;
+use Serializable;
+use SplDoublyLinkedList;
+use SplStack;
+use stdClass;
+use Tracy;
+use Traversable;
 
 class ContainerLoader extends Configurator
 {
-    /** @var BundleInterface[] */
-    protected $bundles = [];
+    /** @var array */
+    public $defaultExtensions = [
+        'extensions'    => Nette\DI\Extensions\ExtensionsExtension::class,
+        'php'           => Nette\DI\Extensions\PhpExtension::class,
+        'constants'     => Nette\DI\Extensions\ConstantsExtension::class,
+        'di'            => [Biurad\Framework\Extensions\DIExtension::class, ['%debugMode%']],
+        'decorator'     => Nette\DI\Extensions\DecoratorExtension::class,
+        'inject'        => Nette\DI\Extensions\InjectExtension::class,
+        'search'        => [Nette\DI\Extensions\SearchExtension::class, ['%tempDir%/cache/nette.searches']],
+        'aware'         => Contributte\DI\Extension\ContainerAwareExtension::class,
+        'autoload'      => Contributte\DI\Extension\ResourceExtension::class,
+        'callable'      => Biurad\Framework\Extensions\InvokerExtension::class,
+        'cache'         => Biurad\Framework\Extensions\CacheExtension::class,
+        'annotation'    => Biurad\Framework\Extensions\AnnotationsExtension::class,
+        'events'        => [Biurad\Framework\Extensions\EventDispatcherExtension::class, ['%appDir%']],
+        'http'          => [Biurad\Framework\Extensions\HttpExtension::class, ['%tempDir%/session']],
+        'routing'       => Biurad\Framework\Extensions\RouterExtension::class,
+        'filesystem'    => Biurad\Framework\Extensions\FileManagerExtension::class,
+        'templating'    => Biurad\Framework\Extensions\TemplatingExtension::class,
+        'leanmapper'    => [Biurad\Framework\Extensions\LeanMapperExtension::class, ['%appDir%']],
+        'spiraldb'      => [Biurad\Framework\Extensions\SpiralDatabaseExtension::class, ['%appDir%', '%tempDir%/migrations']],
+        'console'       => [Biurad\Framework\Extensions\TerminalExtension::class, ['%appDir%']],
+        'framework'     => Biurad\Framework\Extensions\FrameworkExtension::class,
+        'tracy'         => [Tracy\Bridges\Nette\TracyExtension::class, ['%debugMode%', '%consoleMode%']],
+    ];
 
-    /**
-     * Initializes bundles.
-     *
-     * @param BundleInterface[]|string[]
-     *
-     * @throws LogicException if two bundles share a common name
-     */
-    public function initializeBundles(array $bundles): void
-    {
-        // init bundles
-        $this->bundles = [];
-
-        foreach ($bundles as $bundle) {
-            $name = \md5($bundle);
-
-            if (isset($this->bundles[$name])) {
-                throw new LogicException(\sprintf('Trying to register two bundles with the same name "%s".', $name));
-            }
-
-            $this->bundles[$name] = \is_object($bundle) ? $bundle : new $bundle();
-        }
-    }
-
-    /**
-     * Gets the registered bundle instances.
-     *
-     * @return BundleInterface[] — An array of registered bundle instances
-     */
-    public function getBundles(): array
-    {
-        return $this->bundles;
-    }
+    /** @var string[] of classes which shouldn't be autowired */
+    public $autowireExcludedClasses = [
+        ArrayAccess::class,
+        Countable::class,
+        IteratorAggregate::class,
+        SplDoublyLinkedList::class,
+        stdClass::class,
+        SplStack::class,
+        Iterator::class,
+        Traversable::class,
+        Serializable::class,
+        JsonSerializable::class,
+    ];
 
     /**
      * Returns system DI container.
@@ -81,44 +96,9 @@ class ContainerLoader extends Configurator
     }
 
     /**
-     * Prepares the ContainerBuilder before it is compiled.
-     *
-     * @internal
-     */
-    public function generateContainer(DI\Compiler $compiler): void
-    {
-        $loader = $this->createLoader();
-        $loader->setParameters($this->parameters);
-
-        foreach ($this->configs as $config) {
-            if (\is_string($config)) {
-                $compiler->loadConfig($config, $loader);
-            } else {
-                $compiler->addConfig($config);
-            }
-        }
-
-        $compiler->addConfig(['parameters' => $this->parameters]);
-        $compiler->setDynamicParameterNames(\array_keys($this->dynamicParameters));
-
-        $extensions           = [];
-        $extensions['bundle'] = [BundlesExtension::class, [$this->bundles]];
-
-        foreach ($this->bundles as $bundle) {
-            if (null !== $extension = $bundle->getContainerExtension()) {
-                $name = \strtolower(Helpers::extractShortName($extension));
-                $extensions[\substr($name, 0, -9)] = $extension;
-            }
-        }
-
-        $defaultExtensions = (new ExtensionLoader($extensions, $this->parameters))->setCompiler($compiler);
-        $defaultExtensions->load($compiler->getContainerBuilder());
-
-        $this->onCompile($this, $compiler);
-    }
-
-    /**
      * Loads system DI container class and returns its name.
+     *
+     * @return string
      */
     public function loadContainer(): string
     {
@@ -127,8 +107,8 @@ class ContainerLoader extends Configurator
             $this->parameters['debugMode']
         );
 
-        $class = $loader->load(
-            [$this, 'generateContainer'],
+        return $loader->load(
+            Closure::fromCallable([$this, 'generateContainer']),
             [
                 $this->parameters,
                 \array_keys($this->dynamicParameters),
@@ -137,8 +117,6 @@ class ContainerLoader extends Configurator
                 \class_exists(ClassLoader::class) ? \filemtime((new ReflectionClass(ClassLoader::class))->getFilename()) : null, // composer update
             ]
         );
-
-        return $class;
     }
 
     /**
