@@ -48,10 +48,6 @@ class EventRouteListener implements RouteListenerInterface
      */
     public function onRoute(ServerRequestInterface $request, RouteInterface &$route, callable $callable): void
     {
-        if ('phpinfo' === $callable) {
-            $route->setArguments(['what' => -1]);
-        }
-
         $event = new ControllerEvent($this->kernel, $callable, $request);
         $this->dispatcher->dispatch($event, KernelEvents::CONTROLLER);
 
