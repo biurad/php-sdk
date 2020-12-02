@@ -97,35 +97,35 @@ class Directory implements IteratorAggregate, ArrayAccess
      */
     public function resolveDirectories(array $directories): array
     {
-        $newDirectoris = [];
-        $rootPath      = \rtrim($directories['root'], '\\/');
+        $newDirectories = [];
+        $rootPath       = \rtrim($directories['root'], '\\/');
 
         foreach ($directories as $name => $path) {
             // Remove root directory for $directories and set new
             if ('root' === $name) {
-                $newDirectoris['root'] = $rootPath;
+                $newDirectories['root'] = $rootPath;
 
                 continue;
             }
 
-            $newDirectoris[$name] = \sprintf('%s/%s', $rootPath, \trim($path, '\\/'));
+            $newDirectories[$name] = \sprintf('%s/%s', $rootPath, \trim($path, '\\/'));
         }
 
         // Directory to contain logs
-        if (\file_exists($logDir = $newDirectories['logDir'] ?? $newDirectoris['tempDir'] . '/logs')) {
-            $newDirectoris['logDir'] = $logDir;
+        if (\file_exists($logDir = $newDirectories['logDir'] ?? $newDirectories['tempDir'] . '/logs')) {
+            $newDirectories['logDir'] = $logDir;
         }
 
         // Load bundles if exist
-        if (\file_exists($bundleDir = $newDirectories['bundleFile'] ?? $directories['configDir'] . '/bundles.php')) {
-            $newDirectoris['bundles'] = require $bundleDir;
+        if (\file_exists($bundleDir = $newDirectories['bundleFile'] ?? $newDirectories['configDir'] . '/bundles.php')) {
+            $newDirectories['bundles'] = require $bundleDir;
         }
 
         // Environment file ...
         if (!isset($newDirectories['envFile']) && \file_exists($envFile = $rootPath . '/.env')) {
-            $newDirectoris['envFile'] = $envFile;
+            $newDirectories['envFile'] = $envFile;
         }
 
-        return $newDirectoris;
+        return $newDirectories;
     }
 }
