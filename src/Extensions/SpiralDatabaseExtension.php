@@ -17,19 +17,19 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Extensions;
 
-use Biurad\Framework\Commands\SpiralDbListCommand;
-use Biurad\Framework\Commands\SpiralDbTableCommand;
-use Biurad\Framework\Commands\SpiralMigrateCycleCommand;
-use Biurad\Framework\Commands\SpiralMigrateInitCommand;
-use Biurad\Framework\Commands\SpiralMigrateReplayCommand;
-use Biurad\Framework\Commands\SpiralMigrateRollbackCommand;
-use Biurad\Framework\Commands\SpiralMigrateStartCommand;
-use Biurad\Framework\Commands\SpiralMigrateStatusCommand;
-use Biurad\Framework\Commands\SpiralMigrateSyncCommand;
-use Biurad\Framework\CycleFactory;
+use Biurad\Cycle\Commands\Databse\ListCommand;
+use Biurad\Cycle\Commands\Databse\TableCommand;
+use Biurad\Cycle\Commands\Migrations\CycleCommand;
+use Biurad\Cycle\Commands\Migrations\InitCommand;
+use Biurad\Cycle\Commands\Migrations\ReplayCommand;
+use Biurad\Cycle\Commands\Migrations\RollbackCommand;
+use Biurad\Cycle\Commands\Migrations\StartCommand;
+use Biurad\Cycle\Commands\Migrations\StatusCommand;
+use Biurad\Cycle\Commands\Migrations\SyncCommand;
+use Biurad\Cycle\Database;
+use Biurad\Cycle\Factory;
+use Biurad\Cycle\Migrator;
 use Biurad\DependencyInjection\Extension;
-use Biurad\Framework\SpiralDatabase;
-use Biurad\Framework\SpiralMigrator;
 use Cycle\Annotated;
 use Cycle\Migrations\GenerateMigrations;
 use Cycle\ORM;
@@ -111,7 +111,7 @@ class SpiralDatabaseExtension extends Extension
     {
         $container = $this->getContainerBuilder();
 
-        if (!interface_exists(DatabaseProviderInterface::class)) {
+        if (!\interface_exists(DatabaseProviderInterface::class)) {
             return;
         }
 
@@ -121,7 +121,7 @@ class SpiralDatabaseExtension extends Extension
                 \array_flip(['default', 'aliases', 'databases', 'connections'])
             )]);
 
-        $container->register($this->prefix('factory'), SpiralDatabase::class)
+        $container->register($this->prefix('factory'), Database::class)
             ->addSetup('setLogger');
 
         $container->register($this->prefix('dbal'), new Statement([new Reference(DatabaseProviderInterface::class), 'database']))
@@ -133,27 +133,27 @@ class SpiralDatabaseExtension extends Extension
             $container->register($this->prefix('migration.config'), MigrationConfig::class)
                 ->setArguments([$this->config['migration']]);
 
-            $container->register($this->prefix('migration'), SpiralMigrator::class)
+            $container->register($this->prefix('migration'), Migrator::class)
                 ->setArgument('dbal', $container->getDefinition($this->prefix('factory')));
 
             $container->register($this->prefix('migration.repository'), FileRepository::class);
 
             // Migrations
             if ($container->getParameter('consoleMode')) {
-                $container->register($this->prefix('spiral_migrate_command.init'), SpiralMigrateInitCommand::class)
-                ->addTag('console.command', 'spiral:migrate:init');
+                $container->register($this->prefix('spiral_migrate_command.init'), InitCommand::class)
+                ->addTag('console.command', 'migrations:init');
 
-                $container->register($this->prefix('spiral_migrate_command.start'), SpiralMigrateStartCommand::class)
-                ->addTag('console.command', 'spiral:migrate:start');
+                $container->register($this->prefix('spiral_migrate_command.start'), StartCommand::class)
+                ->addTag('console.command', 'migrations:start');
 
-                $container->register($this->prefix('spiral_migrate_command.replay'), SpiralMigrateReplayCommand::class)
-                ->addTag('console.command', 'spiral:migrate:replay');
+                $container->register($this->prefix('spiral_migrate_command.replay'), ReplayCommand::class)
+                ->addTag('console.command', 'migrations:replay');
 
-                $container->register($this->prefix('spiral_migrate_command.rollback'), SpiralMigrateRollbackCommand::class)
-                ->addTag('console.command', 'spiral:migrate:rollback');
+                $container->register($this->prefix('spiral_migrate_command.rollback'), RollbackCommand::class)
+                ->addTag('console.command', 'migrations:rollback');
 
-                $container->register($this->prefix('spiral_migrate_command.status'), SpiralMigrateStatusCommand::class)
-                ->addTag('console.command', 'spiral:migrate:status');
+                $container->register($this->prefix('spiral_migrate_command.status'), StatusCommand::class)
+                ->addTag('console.command', 'migrations:status');
             }
         }
 
@@ -161,7 +161,7 @@ class SpiralDatabaseExtension extends Extension
             $container->getDefinition($this->prefix('factory'))
                 ->setAutowired(false);
 
-            $container->register($this->prefix('orm.factory'), CycleFactory::class)
+            $container->register($this->prefix('orm.factory'), Factory::class)
                 ->setArgument('dbal', $container->getDefinition($this->prefix('factory')));
 
             $container->register($this->prefix('orm.transaction'), ORM\Transaction::class);
@@ -175,16 +175,16 @@ class SpiralDatabaseExtension extends Extension
                 );
 
                 if ($container->getParameter('consoleMode')) {
-                    $container->register($this->prefix('cycle_command.sync'), SpiralMigrateSyncCommand::class)
+                    $container->register($this->prefix('cycle_command.sync'), SyncCommand::class)
                         ->setArgument('generators', $schema)
-                        ->addTag('console.command', 'spiral:migrate:sync');
+                        ->addTag('console.command', 'migrations:sync');
 
                     if (\class_exists(GenerateMigrations::class)) {
                         $container->register($this->prefix('orm.schema.generate_migrations'), GenerateMigrations::class);
 
-                        $container->register($this->prefix('cycle_command.migrate'), SpiralMigrateCycleCommand::class)
+                        $container->register($this->prefix('cycle_command.migrate'), CycleCommand::class)
                             ->setArgument('generators', $schema)
-                            ->addTag('console.command', 'spiral:migrate:cycle');
+                            ->addTag('console.command', 'migrations:cycle');
                     }
                 }
 
@@ -201,11 +201,11 @@ class SpiralDatabaseExtension extends Extension
         }
 
         // Commands
-        $container->register($this->prefix('spiral_db_command.list'), SpiralDbListCommand::class)
-            ->addTag('console.command', 'spiral:db:list');
+        $container->register($this->prefix('spiral_db_command.list'), ListCommand::class)
+            ->addTag('console.command', 'database:list');
 
-        $container->register($this->prefix('spiral_db_command.table'), SpiralDbTableCommand::class)
-            ->addTag('console.command', 'spiral:db:table');
+        $container->register($this->prefix('spiral_db_command.table'), TableCommand::class)
+            ->addTag('console.command', 'database:table');
     }
 
     /**
