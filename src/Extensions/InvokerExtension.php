@@ -18,6 +18,7 @@ declare(strict_types=1);
 namespace Biurad\Framework\Extensions;
 
 use Biurad\DependencyInjection\Extension;
+use DivineNii\Invoker\ArgumentResolver;
 use DivineNii\Invoker\Interfaces\InvokerInterface;
 use DivineNii\Invoker\Invoker;
 use Nette\DI\Definitions\Reference;
@@ -43,6 +44,13 @@ class InvokerExtension extends Extension
         $container = $this->getContainerBuilder();
         $invoker   = $container->getDefinitionByType(InvokerInterface::class);
 
+        if ($container->findByTag('invoker.argument')) {
+            foreach (ArgumentResolver::getDefaultArgumentValueResolvers() as $index => $argument) {
+                $container->register($this->prefix("argument_{$index}"), \get_class($argument))
+                    ->addTag('invoker.argument', $index);
+            }
+        }
+
         $argumentServices = $container->findByTag('invoker.argument');
 
         \uasort($argumentServices, function ($a, $b) {
@@ -50,8 +58,14 @@ class InvokerExtension extends Extension
         });
 
         // Register as services
-        foreach ($argumentServices as $id => $value) {
-            $invoker->addSetup('?->getArgumentResolver()->prependResolver(?)', ['@self', new Reference($id)]);
-        }
+        $invoker->setArgument(
+            0,
+            \array_map(
+                function ($value) {
+                    return new Reference($value);
+                },
+                \array_keys($argumentServices)
+            ),
+        );
     }
 }
