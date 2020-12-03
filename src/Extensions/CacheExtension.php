@@ -19,13 +19,16 @@ namespace Biurad\Framework\Extensions;
 
 use Biurad\Cache\AdapterFactory;
 use Biurad\Cache\CacheItemPool;
+use Biurad\Cache\LoggableStorage;
 use Biurad\Cache\SimpleCache;
 use Biurad\Cache\TagAwareCache;
 use Biurad\DependencyInjection\Extension;
-use Nette;
-use Nette\DI\Definitions\Statement;
+use Biurad\Framework\Debug\Cache\CacheStoragePanel;
 use Cache\Adapter\Doctrine\DoctrineCachePool;
 use Doctrine\Common\Cache\Cache as DoctrineCache;
+use Nette;
+use Nette\DI\Definitions\Reference;
+use Nette\DI\Definitions\Statement;
 
 class CacheExtension extends Extension
 {
@@ -44,17 +47,27 @@ class CacheExtension extends Extension
      */
     public function loadConfiguration(): void
     {
-        $container = $this->getContainerBuilder();
+        $container       = $this->getContainerBuilder();
         $frameworkDriver = $this->getExtensionConfig(FrameworkExtension::class, 'cache_driver');
 
         if (\class_exists(SimpleCache::class)) {
-            $container->register(
-                $this->prefix('doctrine'),
-                new Statement(
-                    [AdapterFactory::class, 'createHandler'],
-                    [$this->config->driver ?? $frameworkDriver]
-                )
-            )->setType(DoctrineCache::class);
+            $adapter = new Statement(
+                [AdapterFactory::class, 'createHandler'],
+                [$this->config->driver ?? $frameworkDriver]
+            );
+
+            if ($debugMode = $container->getParameter('debugMode')) {
+                $adapter = new Statement(LoggableStorage::class, [$adapter]);
+            }
+
+            $doctrine = $container->register($this->prefix('doctrine'), $adapter);
+
+            if ($debugMode) {
+                $doctrine->addSetup(
+                    [new Reference('Tracy\Bar'), 'addPanel'],
+                    [new Statement(CacheStoragePanel::class)]
+                );
+            }
 
             if (\class_exists(DoctrineCachePool::class)) {
                 $container->register($this->prefix('psr6'), TagAwareCache::class);
