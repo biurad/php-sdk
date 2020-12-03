@@ -25,7 +25,6 @@ use Biurad\Cache\TagAwareCache;
 use Biurad\DependencyInjection\Extension;
 use Biurad\Framework\Debug\Cache\CacheStoragePanel;
 use Cache\Adapter\Doctrine\DoctrineCachePool;
-use Doctrine\Common\Cache\Cache as DoctrineCache;
 use Nette;
 use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\Statement;
