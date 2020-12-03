@@ -17,13 +17,16 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Extensions;
 
-use Biurad\FileManager\ConnectionFactory;
 use Biurad\DependencyInjection\Extension;
+use Biurad\FileManager\ConnectionFactory;
+use Biurad\FileManager\Plugin;
+use League\Flysystem\AdapterInterface;
 use League\Flysystem\Cached\CachedAdapter;
 use League\Flysystem\Cached\Storage\Psr6Cache;
 use League\Flysystem\Filesystem;
 use League\Flysystem\MountManager;
 use Nette;
+use Nette\DI\Definitions\Definition;
 use Nette\DI\Definitions\Statement;
 use Psr\Cache\CacheItemPoolInterface;
 
@@ -56,34 +59,21 @@ class FileManagerExtension extends Extension
     public function loadConfiguration(): void
     {
         $container   = $this->getContainerBuilder();
-        $connections = $this->getFromConfig('connections');
-        $filesystems = [];
 
         if (!\class_exists(ConnectionFactory::class)) {
             return;
         }
 
         if (!empty($this->config['connections'])) {
-            $filesystems = \array_map(function (string $name) {
-                $adapters = ['awss3', 'azure', 'dropbox', 'ftp', 'gcs', 'gridfs', 'local', 'rackspace', 'sftp', 'webdav', 'zip'];
+            $adapters = ['awss3', 'azure', 'dropbox', 'ftp', 'gcs', 'gridfs', 'local', 'rackspace', 'sftp', 'webdav', 'zip'];
 
-                if (\in_array($name, $adapters, true)) {
-                    return new Statement(
-                        Filesystem::class,
-                        [
-                            $this->getFlyAdapter($name, $name),
-                            $this->getFlyConfig($name),
-                        ]
-                    );
-                }
-            }, \array_combine(\array_keys($connections), \array_keys($connections)));
+            foreach ($adapters as $adapter) {
+                $container->register($this->prefix($adapter), Filesystem::class)
+                    ->setArguments([$this->getFlyAdapter($adapter, $adapter), $this->getFlyConfig($adapter)]);
+            }
         }
 
-        $container->register($this->prefix('map'), MountManager::class)
-            ->setArguments([$filesystems]);
-
-        $container->register($this->prefix('app'), Filesystem::class)
-            ->setArgument(0, new Statement([ConnectionFactory::class, 'makeAdapter'], [[]]));
+        $container->register($this->prefix('app'), Filesystem::class);
 
         $container->addAlias('flysystem', $this->prefix('app'));
     }
@@ -95,31 +85,54 @@ class FileManagerExtension extends Extension
     {
         $container  = $this->getContainerBuilder();
         $default    = $this->getFromConfig('default');
-        $adapters   = [];
+        $adapters   = $filesystems = [];
 
         if (!\class_exists(ConnectionFactory::class)) {
             return;
         }
 
-        foreach ($container->findByTag(ConnectionFactory::FLY_ADAPTER_TAG) as $id => $name) {
-            $adapter = $container->getDefinition($id)->getFactory();
-            $container->removeDefinition($name);
+        foreach ($container->findByType(AdapterInterface::class) as $adapter) {
+            $tags = $adapter->getTags();
 
-            $adapters[$name] = $connection = $this->getFlyAdapter($name, $adapter);
-            $container->getDefinition($this->prefix('map'))
-                ->addSetup(
-                    'mountFilesystem',
-                    [$name, new Statement(Filesystem::class, [$connection, $this->getFlyConfig($name)])]
-                );
+            if (isset($tags[ConnectionFactory::FLY_ADAPTER_TAG])) {
+                $name            = $tags[ConnectionFactory::FLY_ADAPTER_TAG];
+                $adapters[$name] = $connection = $this->getFlyAdapter($name, $adapter);
+
+                $container->register($this->prefix($name), Filesystem::class)
+                    ->setArguments([$connection, $this->getFlyConfig($name)]);
+            }
         }
 
         $container->getDefinition($this->prefix('app'))
             ->setArgument(0, $adapters[$default] ?? $this->getFlyAdapter($default, $default));
+
+        foreach ($container->findByType(Filesystem::class) as $id => $filesystem) {
+            foreach ([
+                Plugin\AppendContent::class,
+                Plugin\CheckDirectory::class,
+                Plugin\CheckFile::class,
+                Plugin\CreateStream::class,
+                Plugin\CreateSymlink::class,
+                Plugin\FilePath::class,
+                Plugin\FilterByType::class,
+                Plugin\FlushCache::class,
+                Plugin\PrependContent::class,
+            ] as $plugin) {
+                $filesystem->addSetup('addPlugin', [new Statement($plugin)]);
+            }
+
+            if ($id !== $this->prefix('app')) {
+                $filesystems[substr($id, strlen($this->prefix('')))] = $filesystem;
+            }
+        }
+
+        $container->register($this->prefix('map'), MountManager::class)
+            ->setArguments([$filesystems]);
     }
 
     /**
      * @param string           $name
-     * @param Statement|string $adapter
+     * @param Definition|string $adapter
      *
      * @return Statement
      */
@@ -127,7 +140,7 @@ class FileManagerExtension extends Extension
     {
         $container = $this->getContainerBuilder();
         $cache     = $this->getFromConfig('caching');
-        $adapter   =  new Statement([ConnectionFactory::class, 'makeAdapter'], [$this->createFlyConfig($name, $adapter)]);
+        $adapter   =  new Statement([ConnectionFactory::class, 'makeAdapter'], [$this->setFlyConfig($name, $adapter)]);
 
         if ($cache['enable'] && \class_exists(Psr6Cache::class) && $container->getByType(CacheItemPoolInterface::class)) {
             $adapter = new Statement(
@@ -145,7 +158,7 @@ class FileManagerExtension extends Extension
      *
      * @return array
      */
-    private function createFlyConfig(string $name, $adapter): array
+    private function setFlyConfig(string $name, $adapter): array
     {
         $adapterConfig = \array_filter(
             $this->config['connections'][$name] ?? [],
@@ -162,7 +175,9 @@ class FileManagerExtension extends Extension
     }
 
     /**
-     * @return array
+     * @param string $name
+     *
+     * @return mixed[]
      */
     private function getFlyConfig(string $name): array
     {
