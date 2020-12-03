@@ -69,7 +69,11 @@ final class RoutesPanel implements Tracy\IBarPanel
      */
     public function getTab(): string
     {
+        $this->processData($this->profiler);
+
         return Nette\Utils\Helpers::capture(function (): void {
+            $duration = TemplatesPanel::formatDuration($this->duration);
+
             require __DIR__ . '/templates/RoutingPanel.tab.phtml';
         });
     }
@@ -79,14 +83,6 @@ final class RoutesPanel implements Tracy\IBarPanel
      */
     public function getPanel(): string
     {
-        $duration = 0;
-
-        $this->processData($this->profiler);
-
-        foreach ($this->profiler as $profiler) {
-            $duration += $profiler->getDuration();
-        }
-
         return Nette\Utils\Helpers::capture(function (): void {
             $source = $this->source;
             $duration = TemplatesPanel::formatDuration($this->duration);
