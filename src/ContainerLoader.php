@@ -65,7 +65,7 @@ class ContainerLoader extends Configurator
         'filesystem'    => Biurad\Framework\Extensions\FileManagerExtension::class,
         'templating'    => Biurad\Framework\Extensions\TemplatingExtension::class,
         'leanmapper'    => [Biurad\Framework\Extensions\LeanMapperExtension::class, ['%appDir%']],
-        'spiraldb'      => [Biurad\Framework\Extensions\SpiralDatabaseExtension::class, ['%appDir%', '%tempDir%/migrations']],
+        'cycle'         => [Biurad\Framework\Extensions\SpiralDatabaseExtension::class, ['%appDir%', '%tempDir%/migrations']],
         'console'       => [Biurad\Framework\Extensions\TerminalExtension::class, ['%appDir%']],
         'framework'     => Biurad\Framework\Extensions\FrameworkExtension::class,
         'tracy'         => [Tracy\Bridges\Nette\TracyExtension::class, ['%debugMode%', '%consoleMode%']],
