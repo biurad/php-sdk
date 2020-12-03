@@ -28,7 +28,7 @@ class ConsoleKernel extends BaseApplication
     public function __construct(FactoryInterface $container)
     {
         $this->container = $container;
-        parent::__construct('BiuradPHP Framework', '1.0-dev');
+        parent::__construct('Biurad PHP Framework', '1.0-dev');
 
         $inputDefinition = $this->getDefinition();
         $inputDefinition->addOption(new InputOption('--env', '-e', InputOption::VALUE_REQUIRED, 'The Environment name.', $container->getParameter('envMode')));
