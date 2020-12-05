@@ -46,9 +46,9 @@ class EventRouteListener implements RouteListenerInterface
     /**
      * {@inheritdoc}
      */
-    public function onRoute(ServerRequestInterface $request, RouteInterface &$route, callable $callable): void
+    public function onRoute(ServerRequestInterface $request, RouteInterface &$route): void
     {
-        $event = new ControllerEvent($this->kernel, $callable, $request);
+        $event = new ControllerEvent($this->kernel, $route->getController(), $request);
         $this->dispatcher->dispatch($event, KernelEvents::CONTROLLER);
 
         $event = new ControllerArgumentsEvent(
