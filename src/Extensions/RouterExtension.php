@@ -35,7 +35,6 @@ use Flight\Routing\Annotation\Listener;
 use Flight\Routing\Interfaces\RouteListenerInterface;
 use Flight\Routing\Middlewares\PathMiddleware;
 use Flight\Routing\RouteCollector;
-use Flight\Routing\RoutePipeline;
 use Flight\Routing\Router as FlightRouter;
 use Nette;
 use Nette\DI\Config\Adapters\NeonAdapter;
@@ -150,8 +149,7 @@ class RouterExtension extends Extension
             [PathMiddleware::class, ContentSecurityPolicyMiddleware::class, HttpMiddleware::class],
         );
 
-        $container->register($this->prefix('pipeline'), RoutePipeline::class)
-            ->addSetup('?->addMiddleware(...?)', [
+        $router->addSetup('?->addMiddleware(...?)', [
                 '@self',
                 \array_map(function ($middleware) {
                     if (\is_string($middleware) && \class_exists($middleware)) {
@@ -160,15 +158,14 @@ class RouterExtension extends Extension
 
                     return  $middleware;
                 }, \array_filter($middlewares)),
-            ])
-            ->addSetup([new Reference('Tracy\Bar'), 'addPanel'], [new Statement(RoutesPanel::class, [$router])]);
+            ]);
 
         if ($container->getParameter('consoleMode')) {
             $container->register($this->prefix('command_debug'), RouteCommand::class)
                 ->addTag('console.command', 'debug:routes');
         }
 
-        $container->addAlias('router', $this->prefix('pipeline'));
+        $container->addAlias('router', $this->prefix('factory'));
     }
 
     /**
@@ -209,7 +206,8 @@ class RouterExtension extends Extension
             ->addSetup(
                 '?->addRouteListener(...?)',
                 ['@self', $this->getHelper()->getServiceDefinitionsFromDefinitions($listeners)]
-            );
+            )
+            ->addSetup([new Reference('Tracy\Bar'), 'addPanel'], [new Statement(RoutesPanel::class)]);
     }
 
     private function addRoute(ServiceDefinition $collector, $routes): void

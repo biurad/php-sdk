@@ -19,10 +19,8 @@ namespace Biurad\Framework\Dispatchers;
 
 use Biurad\Framework\Interfaces\DispatcherInterface;
 use Biurad\Framework\Interfaces\KernelInterface;
-use Flight\Routing\RoutePipeline;
 use Flight\Routing\Router as FlightRouter;
 use GuzzleHttp\Exception\RequestException;
-use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 class HttpDispatcher implements DispatcherInterface
@@ -47,12 +45,8 @@ class HttpDispatcher implements DispatcherInterface
     {
         $container = $kernel->getContainer();
 
-        /**
-         * @var RoutePipeline $pipeline
-         * @var FlightRouter  $handler
-         */
-        $pipeline  = $container->get(RoutePipeline::class);
-        $handler   = $container->get(FlightRouter::class);
+        /** @var FlightRouter $router */
+        $router = $container->get(FlightRouter::class);
 
         // On demand to save some memory.
         process:
@@ -63,10 +57,8 @@ class HttpDispatcher implements DispatcherInterface
         // Add a new request to stack.
         $this->requests[] = $request;
 
-        if (
-            null !== $request &&
-            ($response = $pipeline->process($request, $handler)) instanceof ResponseInterface) {
-            return $response;
+        if (null !== $request) {
+            return $router->handle($request);
         }
 
         goto process;
