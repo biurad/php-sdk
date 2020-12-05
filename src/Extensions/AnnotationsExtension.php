@@ -21,6 +21,7 @@ use Biurad\Annotations\AnnotationLoader;
 use Biurad\Annotations\ListenerInterface;
 use Biurad\Annotations\LoaderInterface;
 use Biurad\DependencyInjection\Extension;
+use Biurad\Framework\Kernel;
 use Doctrine\Common\Annotations\AnnotationReader;
 use Doctrine\Common\Annotations\AnnotationRegistry;
 use Doctrine\Common\Annotations\CachedReader;
@@ -28,6 +29,7 @@ use Doctrine\Common\Cache\Cache as DoctrineCache;
 use Nette;
 use Nette\DI\Definitions\Definition;
 use Nette\DI\Definitions\Statement;
+use Nette\Loaders\RobotLoader;
 use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\PhpLiteral;
 use Spiral\Attributes\AnnotationReader as DoctrineReader;
@@ -41,11 +43,13 @@ class AnnotationsExtension extends Extension
      */
     public function getConfigSchema(): Nette\Schema\Schema
     {
+        $debugMode = $this->getContainerBuilder()->getParameter('debugMode');
+
         return Nette\Schema\Expect::structure([
             'resources' => Nette\Schema\Expect::list()->before(function ($value) {
                 return \is_string($value) ? [$value] : $value;
             }),
-            'debug'     => Nette\Schema\Expect::bool(false),
+            'debug'     => Nette\Schema\Expect::bool($debugMode),
             'ignore'    => Nette\Schema\Expect::listOf('string')->default([
                 'persistent',
                 'serializationVersion',
@@ -73,9 +77,26 @@ class AnnotationsExtension extends Extension
                 $reader =  new Statement(MergeReader::class, [[$reader, new Statement(DoctrineReader::class)]]);
             }
 
+            $robot   = $this->createRobotLoader();
+            $classes = [];
+
+            foreach (\array_unique(\array_keys($robot->getIndexedClasses())) as $class) {
+                // Skip not existing class
+                if (!\class_exists($class)) {
+                    continue;
+                }
+
+                // Remove `Biurad\Framework\Kernel` class
+                if (\is_subclass_of($class, Kernel::class)) {
+                    continue;
+                }
+
+                $classes[] = new PhpLiteral($class . '::class');
+            }
+
             $container->register($this->prefix('loader'), AnnotationLoader::class)
                 ->setArgument('reader', $reader)
-                ->addSetup('?->attach(...?)', ['@self', $this->config->resources]);
+                ->addSetup('?->attach(...?)', ['@self', $classes]);
         }
 
         if (null === $doctrine) {
@@ -141,5 +162,15 @@ class AnnotationsExtension extends Extension
         if (\method_exists(AnnotationRegistry::class, 'registerLoader')) {
             $initialize->setBody('?::registerUniqueLoader("\\class_exists");', [new PhpLiteral(AnnotationRegistry::class)]);
         }
+    }
+
+    protected function createRobotLoader(): RobotLoader
+    {
+        $robot = new RobotLoader();
+        $robot->addDirectory(...$this->config->resources);
+        $robot->acceptFiles = ['*.php'];
+		$robot->rebuild();
+
+        return $robot;
     }
 }
