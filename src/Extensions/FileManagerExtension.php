@@ -25,6 +25,7 @@ use League\Flysystem\Cached\CachedAdapter;
 use League\Flysystem\Cached\Storage\Psr6Cache;
 use League\Flysystem\Filesystem;
 use League\Flysystem\MountManager;
+use League\Flysystem\PluginInterface;
 use Nette;
 use Nette\DI\Definitions\Definition;
 use Nette\DI\Definitions\Statement;
@@ -106,8 +107,9 @@ class FileManagerExtension extends Extension
         $container->getDefinition($this->prefix('app'))
             ->setArgument(0, $adapters[$default] ?? $this->getFlyAdapter($default, $default));
 
-        foreach ($container->findByType(Filesystem::class) as $id => $filesystem) {
-            foreach ([
+        $plugins = \array_merge(
+            \array_values($container->findByType(PluginInterface::class)),
+            [
                 Plugin\AppendContent::class,
                 Plugin\CheckDirectory::class,
                 Plugin\CheckFile::class,
@@ -117,12 +119,17 @@ class FileManagerExtension extends Extension
                 Plugin\FilterByType::class,
                 Plugin\FlushCache::class,
                 Plugin\PrependContent::class,
-            ] as $plugin) {
-                $filesystem->addSetup('addPlugin', [new Statement($plugin)]);
+            ]
+        );
+
+        foreach ($container->findByType(Filesystem::class) as $id => $filesystem) {
+            foreach ($plugins as $plugin) {
+                $filesystem->addSetup('addPlugin', [$plugin instanceof Statement ? $plugin : new Statement($plugin)]);
             }
 
             if ($id !== $this->prefix('app')) {
-                $filesystems[substr($id, strlen($this->prefix('')))] = $filesystem;
+                $name = \explode('.', $id);
+                $filesystems[\end($name)] = $filesystem;
             }
         }
 
@@ -131,7 +138,7 @@ class FileManagerExtension extends Extension
     }
 
     /**
-     * @param string           $name
+     * @param string            $name
      * @param Definition|string $adapter
      *
      * @return Statement
