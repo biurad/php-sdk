@@ -21,15 +21,15 @@ use Biurad\DependencyInjection\Extension;
 use Biurad\Framework\Interfaces\DispatcherInterface;
 use Biurad\Framework\Interfaces\KernelInterface;
 use Biurad\Http\Factories\GuzzleHttpPsr7Factory;
+use Biurad\Http\Factory\CookieFactory;
 use Biurad\Http\Interfaces\CspInterface;
+use Biurad\Http\Middlewares\AccessControlMiddleware;
 use Biurad\Http\Middlewares\CacheControlMiddleware;
 use Biurad\Http\Middlewares\HttpMiddleware;
 use Biurad\Http\Session;
 use Biurad\Http\Sessions\HandlerFactory;
 use Biurad\Http\Sessions\Storage\NativeSessionStorage;
-use Biurad\Http\Strategies\AccessControlPolicy;
 use Biurad\Http\Strategies\ContentSecurityPolicy;
-use Biurad\Http\Strategies\QueueingCookie;
 use Nette;
 use Nette\DI\Definitions\Statement;
 use Nette\Schema\Expect;
@@ -65,36 +65,23 @@ class HttpExtension extends Extension
                 'content_security_policy' => Expect::array(), // Content-Security-Policy
                 'csp_report_only'         => Expect::array(), // Content-Security-Policy-Report-Only
                 'feature_policy'          => Expect::array(), // Feature-Policy
+                'referrer_policy'         => Expect::array(), // Referrer-Policy
                 'frame_policy'            => Expect::anyOf(Expect::string(), false)->default('SAMEORIGIN')
                     ->before(function ($value) {
                         return null === $value ? '' : $value;
                     }),
             ])->castTo('array'), // X-Frame-Options
             'headers' => Nette\Schema\Expect::structure([
-                'cors' => Nette\Schema\Expect::structure([
-                    'allowedPaths'       => Nette\Schema\Expect::list()
-                        ->before(function ($value) {
-                            return \is_string($value) ? [$value] : $value;
-                        }),
-                    'allowedOrigins'     => Nette\Schema\Expect::list()
-                        ->before(function ($value) {
-                            return \is_string($value) ? [$value] : $value;
-                        }),
-                    'allowedHeaders'    => Nette\Schema\Expect::list()
-                        ->before(function ($value) {
-                            return \is_string($value) ? [$value] : $value;
-                        }),
-                    'allowedMethods'    => Nette\Schema\Expect::list()
-                        ->before(function ($value) {
-                            return \is_string($value) ? [$value] : $value;
-                        }),
-                    'exposedHeaders'    => Nette\Schema\Expect::list()
-                        ->before(function ($value) {
-                            return \is_string($value) ? [$value] : $value;
-                        })->nullable(),
-                    'allowCredentials'  => Nette\Schema\Expect::bool()->nullable(),
-                    'maxAge'            => Nette\Schema\Expect::int()->nullable(),
-                ])->castTo('array'),
+                'cors' => Nette\Schema\Expect::structure(\array_merge(
+                    $this->corsConfig(),
+                    [
+                        'allow_paths' => Nette\Schema\Expect::anyOf('*', Expect::bool(), Expect::arrayOf(
+                            Expect::structure(
+                                $this->corsConfig()
+                            )->castTo('array')
+                        )),
+                    ]
+                ))->castTo('array'),
                 'request'               => Nette\Schema\Expect::arrayOf(Expect::string()),
                 'response'              => Nette\Schema\Expect::arrayOf(Expect::string()),
             ])->castTo('array'),
@@ -120,14 +107,11 @@ class HttpExtension extends Extension
         $container = $this->getContainerBuilder();
         $container->register($this->prefix('factory'), GuzzleHttpPsr7Factory::class);
 
-        $container->register($this->prefix('access_control'), AccessControlPolicy::class)
-            ->setArgument('options', $this->getFromConfig('headers.cors'));
-
         $csPolicy = $container->register($this->prefix('csp'), ContentSecurityPolicy::class)
             ->setType(CspInterface::class);
 
         if (false === ($this->getExtensionConfig(FrameworkExtension::class, 'content_security_policy') ?? false)) {
-            $csPolicy->addSetup('disableCsp');
+            $csPolicy->setArgument('disable', true);
         }
 
         $container->register($this->prefix('middleware'), HttpMiddleware::class)
@@ -136,6 +120,9 @@ class HttpExtension extends Extension
                 \array_flip(['policies', 'headers'])
             ));
 
+        $container->register($this->prefix('cors_control'), AccessControlMiddleware::class)
+            ->setArguments([$this->getFromConfig('headers.cors')]);
+
         if ($container->getByType(CacheItemPoolInterface::class)) {
             $container->register($this->prefix('cache_control'), CacheControlMiddleware::class)
                 ->setArgument('config', $this->getFromConfig('caching'));
@@ -143,7 +130,7 @@ class HttpExtension extends Extension
 
         $sessionOptions = $this->getFromConfig('sessions.options');
 
-        $container->register($this->prefix('cookie'), QueueingCookie::class)
+        $container->register($this->prefix('cookie'), CookieFactory::class)
             ->addSetup('setDefaultPathAndDomain', [
                 $sessionOptions['cookie_path'],
                 $sessionOptions['cookie_domain'],
@@ -182,5 +169,34 @@ class HttpExtension extends Extension
                 '?->addDispatcher(...?)',
                 ['@self', $this->getHelper()->getServiceDefinitionsFromDefinitions($listeners)]
             );
+    }
+
+    private function corsConfig(): array
+    {
+        return [
+            'allow_origin'       => Nette\Schema\Expect::anyOf(Expect::list()
+            ->before(function ($value) {
+                return \is_string($value) ? [$value] : $value;
+            }), '*', Expect::bool()),
+            'allow_headers'      => Nette\Schema\Expect::anyOf(Expect::list()
+                ->before(function ($value) {
+                    return \is_string($value) ? [$value] : $value;
+                }), '*', Expect::bool()),
+            'allow_methods'      => Nette\Schema\Expect::list()
+                ->before(function ($value) {
+                    return \is_string($value) ? [$value] : $value;
+                }),
+            'exposed_headers'    => Nette\Schema\Expect::list()
+                ->before(function ($value) {
+                    return \is_string($value) ? [$value] : $value;
+                }),
+            'hosts'              => Nette\Schema\Expect::list()
+                ->before(function ($value) {
+                    return \is_string($value) ? [$value] : $value;
+                }),
+            'allow_credentials'  => Nette\Schema\Expect::bool(false),
+            'origin_regex'       => Nette\Schema\Expect::bool(false),
+            'max_age'            => Nette\Schema\Expect::int(0),
+        ];
     }
 }

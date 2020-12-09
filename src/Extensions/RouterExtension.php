@@ -143,10 +143,14 @@ class RouterExtension extends Extension
                 $container->getByType(CacheItemPoolInterface::class) ? CacheControlMiddleware::class : null,
                 CookiesMiddleware::class,
                 SessionMiddleware::class,
-                AccessControlMiddleware::class,
             ],
             $this->getFromConfig('middlewares'),
-            [PathMiddleware::class, ContentSecurityPolicyMiddleware::class, HttpMiddleware::class],
+            [
+                PathMiddleware::class,
+                ContentSecurityPolicyMiddleware::class,
+                AccessControlMiddleware::class,
+                HttpMiddleware::class
+            ],
         );
 
         $router->addSetup('?->addMiddleware(...?)', [
