@@ -81,14 +81,18 @@ class HttpExtension extends Extension
                         )->before(Closure::fromCallable([$this, 'normalizeAllowPath'])),
                     ]
                 ))->before(function ($values) {
-                    if (isset($values['allow_paths']) && count($values['allow_paths']) > 1) {
+                    if (isset($values['allow_paths'])) {
                         $allowedPaths = [];
 
-                        foreach ($values['allow_paths'] as $path) {
-                            $allowedPaths += $this->normalizeAllowPath($path);
+                        foreach ($values['allow_paths'] as $index => $path) {
+                            if (is_int($index)) {
+                                $allowedPaths += $this->normalizeAllowPath($path);
+                            }
                         }
 
-                        $values['allow_paths'] = $allowedPaths;
+                        if (!empty($allowedPaths)) {
+                            $values['allow_paths'] = $allowedPaths;
+                        }
                     }
 
                     return $values;
