@@ -75,11 +75,16 @@ class HttpExtension extends Extension
                 'cors' => Nette\Schema\Expect::structure(\array_merge(
                     $this->corsConfig(),
                     [
-                        'allow_paths' => Nette\Schema\Expect::anyOf('*', Expect::bool(), Expect::arrayOf(
-                            Expect::structure(
-                                $this->corsConfig()
-                            )->castTo('array')
-                        )),
+                        'allow_paths' => Nette\Schema\Expect::anyOf('*', Expect::bool(),
+                            Expect::arrayOf(Expect::structure($this->corsConfig())->castTo('array'))
+                        )->before(function ($values) {
+                            if (isset($values['value'])) {
+                                $keys   = array_flip(array_keys($this->corsConfig()));
+                                $values = [$values['value'] => \array_intersect_key($values, $keys)];
+                            }
+
+                            return $values;
+                        }),
                     ]
                 ))->castTo('array'),
                 'request'               => Nette\Schema\Expect::arrayOf(Expect::string()),
@@ -174,14 +179,14 @@ class HttpExtension extends Extension
     private function corsConfig(): array
     {
         return [
-            'allow_origin'       => Nette\Schema\Expect::anyOf(Expect::list()
-            ->before(function ($value) {
-                return \is_string($value) ? [$value] : $value;
-            }), '*', Expect::bool()),
-            'allow_headers'      => Nette\Schema\Expect::anyOf(Expect::list()
-                ->before(function ($value) {
+            'allow_origin'       => Nette\Schema\Expect::anyOf(Expect::list(), Expect::string(), Expect::bool())
+                    ->before(function ($value) {
                     return \is_string($value) ? [$value] : $value;
-                }), '*', Expect::bool()),
+                }),
+            'allow_headers'      => Nette\Schema\Expect::anyOf(Expect::list(), Expect::string(), Expect::bool())
+                    ->before(function ($value) {
+                    return \is_string($value) ? [$value] : $value;
+                }),
             'allow_methods'      => Nette\Schema\Expect::list()
                 ->before(function ($value) {
                     return \is_string($value) ? [$value] : $value;
