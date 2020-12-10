@@ -30,6 +30,7 @@ use Biurad\Http\Session;
 use Biurad\Http\Sessions\HandlerFactory;
 use Biurad\Http\Sessions\Storage\NativeSessionStorage;
 use Biurad\Http\Strategies\ContentSecurityPolicy;
+use Closure;
 use Nette;
 use Nette\DI\Definitions\Statement;
 use Nette\Schema\Expect;
@@ -77,16 +78,21 @@ class HttpExtension extends Extension
                     [
                         'allow_paths' => Nette\Schema\Expect::anyOf('*', Expect::bool(),
                             Expect::arrayOf(Expect::structure($this->corsConfig())->castTo('array'))
-                        )->before(function ($values) {
-                            if (isset($values['value'])) {
-                                $keys   = array_flip(array_keys($this->corsConfig()));
-                                $values = [$values['value'] => \array_intersect_key($values, $keys)];
-                            }
-
-                            return $values;
-                        }),
+                        )->before(Closure::fromCallable([$this, 'normalizeAllowPath'])),
                     ]
-                ))->castTo('array'),
+                ))->before(function ($values) {
+                    if (isset($values['allow_paths']) && count($values['allow_paths']) > 1) {
+                        $allowedPaths = [];
+
+                        foreach ($values['allow_paths'] as $path) {
+                            $allowedPaths += $this->normalizeAllowPath($path);
+                        }
+
+                        $values['allow_paths'] = $allowedPaths;
+                    }
+
+                    return $values;
+                })->castTo('array'),
                 'request'               => Nette\Schema\Expect::arrayOf(Expect::string()),
                 'response'              => Nette\Schema\Expect::arrayOf(Expect::string()),
             ])->castTo('array'),
@@ -203,5 +209,19 @@ class HttpExtension extends Extension
             'origin_regex'       => Nette\Schema\Expect::bool(false),
             'max_age'            => Nette\Schema\Expect::int(0),
         ];
+    }
+
+    private function normalizeAllowPath(array $values): array
+    {
+        if (isset($values['value'])) {
+            if (is_bool($values['value']) || '*' === $values['value']) {
+                return $values['value'];
+            }
+    
+            $keys   = array_flip(array_keys($this->corsConfig()));
+            $values = [$values['value'] => \array_intersect_key($values, $keys)];
+        }
+
+        return $values;
     }
 }
