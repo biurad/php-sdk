@@ -215,13 +215,13 @@ class HttpExtension extends Extension
         ];
     }
 
-    private function normalizeAllowPath(array $values): array
+    private function normalizeAllowPath(array $values)
     {
         if (isset($values['value'])) {
             if (is_bool($values['value']) || '*' === $values['value']) {
                 return $values['value'];
             }
-    
+
             $keys   = array_flip(array_keys($this->corsConfig()));
             $values = [$values['value'] => \array_intersect_key($values, $keys)];
         }
