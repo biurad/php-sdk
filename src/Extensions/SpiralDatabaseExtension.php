@@ -26,6 +26,7 @@ use Biurad\Cycle\Commands\Migrations\RollbackCommand;
 use Biurad\Cycle\Commands\Migrations\StartCommand;
 use Biurad\Cycle\Commands\Migrations\StatusCommand;
 use Biurad\Cycle\Commands\Migrations\SyncCommand;
+use Biurad\Cycle\Compiler;
 use Biurad\Cycle\Database;
 use Biurad\Cycle\Factory;
 use Biurad\Cycle\Migrator;
@@ -33,15 +34,12 @@ use Biurad\DependencyInjection\Extension;
 use Cycle\Annotated;
 use Cycle\Migrations\GenerateMigrations;
 use Cycle\ORM;
-use Cycle\Schema\Compiler;
 use Cycle\Schema\Generator;
 use Cycle\Schema\GeneratorInterface;
 use Cycle\Schema\Registry;
 use Nette;
-use Nette\DI\ContainerBuilder;
 use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\Statement;
-use Nette\PhpGenerator\PhpLiteral;
 use Nette\Schema\Expect;
 use Spiral\Database\Config\DatabaseConfig;
 use Spiral\Database\DatabaseInterface;
@@ -49,8 +47,8 @@ use Spiral\Database\DatabaseProviderInterface;
 use Spiral\Migrations\Config\MigrationConfig;
 use Spiral\Migrations\FileRepository;
 use Spiral\Migrations\MigrationInterface;
-use Spiral\Tokenizer\ClassLocator;
-use Symfony\Component\Finder\Finder;
+use Spiral\Tokenizer\Config\TokenizerConfig;
+use Spiral\Tokenizer\Tokenizer;
 
 class SpiralDatabaseExtension extends Extension
 {
@@ -141,59 +139,56 @@ class SpiralDatabaseExtension extends Extension
             // Migrations
             if ($container->getParameter('consoleMode')) {
                 $container->register($this->prefix('spiral_migrate_command.init'), InitCommand::class)
-                ->addTag('console.command', 'migrations:init');
+                    ->addTag('console.command', 'migrations:init');
 
                 $container->register($this->prefix('spiral_migrate_command.start'), StartCommand::class)
-                ->addTag('console.command', 'migrations:start');
+                    ->addTag('console.command', 'migrations:start');
 
                 $container->register($this->prefix('spiral_migrate_command.replay'), ReplayCommand::class)
-                ->addTag('console.command', 'migrations:replay');
+                    ->addTag('console.command', 'migrations:replay');
 
                 $container->register($this->prefix('spiral_migrate_command.rollback'), RollbackCommand::class)
-                ->addTag('console.command', 'migrations:rollback');
+                    ->addTag('console.command', 'migrations:rollback');
 
                 $container->register($this->prefix('spiral_migrate_command.status'), StatusCommand::class)
-                ->addTag('console.command', 'migrations:status');
+                    ->addTag('console.command', 'migrations:status');
             }
         }
 
         if (\interface_exists(ORM\ORMInterface::class)) {
-            $container->getDefinition($this->prefix('factory'))
-                ->setAutowired(false);
-
             $container->register($this->prefix('orm.factory'), Factory::class)
-                ->setArgument('dbal', $container->getDefinition($this->prefix('factory')));
+                ->setArgument('dbal', $container->getDefinition($this->prefix('factory'))->setAutowired(false))
+                ->setArgument('config', new Statement([ORM\Config\RelationConfig::class, 'getDefault']));
 
             $container->register($this->prefix('orm.transaction'), ORM\Transaction::class);
 
             if (\class_exists(Compiler::class)) {
                 $container->register($this->prefix('orm.schema.registry'), Registry::class);
+                $container->register($this->prefix('orm.schema.generate_relations'), Generator\GenerateRelations::class);
 
-                $schema = new Statement(
-                    [new Statement(Compiler::class), 'compile'],
-                    [1 => $this->getGenerators()]
-                );
+                $container->register($this->prefix('orm.schema.compiler'), Compiler::class)
+                    ->setArgument('generators', $this->getGenerators());
 
                 if ($container->getParameter('consoleMode')) {
                     $container->register($this->prefix('cycle_command.sync'), SyncCommand::class)
-                        ->setArgument('generators', $schema)
                         ->addTag('console.command', 'migrations:sync');
 
                     if (\class_exists(GenerateMigrations::class)) {
                         $container->register($this->prefix('orm.schema.generate_migrations'), GenerateMigrations::class);
 
                         $container->register($this->prefix('cycle_command.migrate'), CycleCommand::class)
-                            ->setArgument('generators', $schema)
                             ->addTag('console.command', 'migrations:cycle');
                     }
                 }
 
-                $container->register($this->prefix('orm.schema'), new Statement(ORM\Schema::class, [$schema]));
-                $container->register($this->prefix('orm.schema.generate_relations'), Generator\GenerateRelations::class);
-            }
+                $container->register($this->prefix('orm'), ORM\ORM::class)
+                   ->setArgument('schema', new Statement(
+                        ORM\Schema::class,
+                        [new Statement([new Reference(Compiler::class), 'compile'])]
+                    ));
 
-            $container->register($this->prefix('orm'), ORM\ORM::class);
-            $container->addAlias('cycleorm', $this->prefix('orm'));
+               $container->addAlias('cycleorm', $this->prefix('orm'));
+            }
         }
 
         if (!$container->getParameter('consoleMode')) {
@@ -209,23 +204,13 @@ class SpiralDatabaseExtension extends Extension
     }
 
     /**
-     * @param string                $directory
-     * @param null|ContainerBuilder $container
+     * @return Statement
      */
-    public function getClassLocator(string $directory, ?ContainerBuilder $container = null)
+    public function getClassLocator(): Statement
     {
-        $container = $container ?? $this->getContainerBuilder();
-
         return new Statement(
-            ClassLocator::class,
-            [
-                new PhpLiteral(
-                    $container->formatPhp(
-                        '(?)->files()->in(?)',
-                        [new Statement(Finder::class), $directory]
-                    )
-                ),
-            ]
+            [new Statement(Tokenizer::class, [new Statement(TokenizerConfig::class)]), 'classLocator'],
+            [[$this->getFromConfig('orm.entities')]]
         );
     }
 
@@ -238,8 +223,8 @@ class SpiralDatabaseExtension extends Extension
 
         if (\class_exists(\Cycle\Annotated\Configurator::class)) {
             $generators = \array_merge($generators, [
-                new Statement(Annotated\Embeddings::class, [$this->getClassLocator($this->getFromConfig('orm.entities'))]), # register embeddable entities
-                new Statement(Annotated\Entities::class, [$this->getClassLocator($this->getFromConfig('orm.entities'))]), # register annotated entities
+                new Statement(Annotated\Embeddings::class, [$this->getClassLocator()]), # register embeddable entities
+                new Statement(Annotated\Entities::class, [$this->getClassLocator()]), # register annotated entities
                 new Statement(Annotated\MergeColumns::class), # copy column declarations from all related classes (@Table annotation)
                 new Statement(Annotated\MergeIndexes::class), # copy index declarations from all related classes (@Table annotation)
             ]);
@@ -251,8 +236,13 @@ class SpiralDatabaseExtension extends Extension
             new Statement(Generator\ValidateEntities::class), # make sure all entity schemas are correct
             new Statement(Generator\RenderTables::class), # declare table schemas
             new Statement(Generator\RenderRelations::class), # declare relation keys and indexes
+            //new Statement(Generator\SyncTables::class), # sync table changes to database
             new Statement(Generator\GenerateTypecast::class), # typecast non string columns
         ]);
+
+        if (\class_exists(GenerateMigrations::class)) {
+            //$generators[] = new Statement(GenerateMigrations::class);
+        }
 
         return $generators;
     }
