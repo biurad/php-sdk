@@ -31,6 +31,7 @@ use Biurad\Cycle\Database;
 use Biurad\Cycle\Factory;
 use Biurad\Cycle\Migrator;
 use Biurad\DependencyInjection\Extension;
+use Biurad\Framework\Kernel;
 use Cycle\Annotated;
 use Cycle\Migrations\GenerateMigrations;
 use Cycle\ORM;
@@ -40,6 +41,8 @@ use Cycle\Schema\Registry;
 use Nette;
 use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\Statement;
+use Nette\Loaders\RobotLoader;
+use Nette\PhpGenerator\PhpLiteral;
 use Nette\Schema\Expect;
 use Spiral\Database\Config\DatabaseConfig;
 use Spiral\Database\DatabaseInterface;
@@ -47,8 +50,6 @@ use Spiral\Database\DatabaseProviderInterface;
 use Spiral\Migrations\Config\MigrationConfig;
 use Spiral\Migrations\FileRepository;
 use Spiral\Migrations\MigrationInterface;
-use Spiral\Tokenizer\Config\TokenizerConfig;
-use Spiral\Tokenizer\Tokenizer;
 
 class SpiralDatabaseExtension extends Extension
 {
@@ -183,11 +184,11 @@ class SpiralDatabaseExtension extends Extension
 
                 $container->register($this->prefix('orm'), ORM\ORM::class)
                    ->setArgument('schema', new Statement(
-                        ORM\Schema::class,
-                        [new Statement([new Reference(Compiler::class), 'compile'])]
-                    ));
+                       ORM\Schema::class,
+                       [new Statement([new Reference(Compiler::class), 'compile'])]
+                   ));
 
-               $container->addAlias('cycleorm', $this->prefix('orm'));
+                $container->addAlias('cycleorm', $this->prefix('orm'));
             }
         }
 
@@ -204,14 +205,38 @@ class SpiralDatabaseExtension extends Extension
     }
 
     /**
-     * @return Statement
+     * @return PhpLiteral[]
      */
-    public function getClassLocator(): Statement
+    public function getClassLocator(): array
     {
-        return new Statement(
-            [new Statement(Tokenizer::class, [new Statement(TokenizerConfig::class)]), 'classLocator'],
-            [[$this->getFromConfig('orm.entities')]]
-        );
+        $robot   = $this->createRobotLoader();
+        $classes = [];
+
+        foreach (\array_unique(\array_keys($robot->getIndexedClasses())) as $class) {
+            // Skip not existing class
+            if (!\class_exists($class)) {
+                continue;
+            }
+
+            // Remove `Biurad\Framework\Kernel` class
+            if (\is_subclass_of($class, Kernel::class)) {
+                continue;
+            }
+
+            $classes[] = new PhpLiteral($class . '::class');
+        }
+
+        return $classes;
+    }
+
+    protected function createRobotLoader(): RobotLoader
+    {
+        $robot = new RobotLoader();
+        $robot->addDirectory($this->getFromConfig('orm.entities'));
+        $robot->acceptFiles = ['*.php'];
+        $robot->rebuild();
+
+        return $robot;
     }
 
     /**
@@ -223,8 +248,8 @@ class SpiralDatabaseExtension extends Extension
 
         if (\class_exists(\Cycle\Annotated\Configurator::class)) {
             $generators = \array_merge($generators, [
-                new Statement(Annotated\Embeddings::class, [$this->getClassLocator()]), # register embeddable entities
-                new Statement(Annotated\Entities::class, [$this->getClassLocator()]), # register annotated entities
+                new Statement(\Biurad\Cycle\Annotated\Embeddings::class, [$this->getClassLocator()]), # register embeddable entities
+                new Statement(\Biurad\Cycle\Annotated\Entities::class, [$this->getClassLocator()]), # register annotated entities
                 new Statement(Annotated\MergeColumns::class), # copy column declarations from all related classes (@Table annotation)
                 new Statement(Annotated\MergeIndexes::class), # copy index declarations from all related classes (@Table annotation)
             ]);
