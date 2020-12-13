@@ -33,6 +33,7 @@ use Biurad\Cycle\Migrator;
 use Biurad\DependencyInjection\Extension;
 use Biurad\Framework\Kernel;
 use Cycle\Annotated;
+use Cycle\Annotated\Configurator;
 use Cycle\Migrations\GenerateMigrations;
 use Cycle\ORM;
 use Cycle\Schema\Generator;
@@ -244,31 +245,25 @@ class SpiralDatabaseExtension extends Extension
      */
     private function getGenerators(): array
     {
-        $generators = [];
+        $generators = [new Statement(Generator\ResetTables::class)]; # re-declared table schemas (remove columns)
 
         if (\class_exists(\Cycle\Annotated\Configurator::class)) {
-            $generators = \array_merge($generators, [
+            $generators = \array_merge([
                 new Statement(\Biurad\Cycle\Annotated\Embeddings::class, [$this->getClassLocator()]), # register embeddable entities
                 new Statement(\Biurad\Cycle\Annotated\Entities::class, [$this->getClassLocator()]), # register annotated entities
                 new Statement(Annotated\MergeColumns::class), # copy column declarations from all related classes (@Table annotation)
-                new Statement(Annotated\MergeIndexes::class), # copy index declarations from all related classes (@Table annotation)
-            ]);
+            ], $generators);
         }
 
         $generators = \array_merge($generators, [
-            new Statement(Generator\ResetTables::class), # re-declared table schemas (remove columns)
             new Reference(Generator\GenerateRelations::class), # generate entity relations
             new Statement(Generator\ValidateEntities::class), # make sure all entity schemas are correct
             new Statement(Generator\RenderTables::class), # declare table schemas
             new Statement(Generator\RenderRelations::class), # declare relation keys and indexes
-            //new Statement(Generator\SyncTables::class), # sync table changes to database
             new Statement(Generator\GenerateTypecast::class), # typecast non string columns
+            class_exists(Configurator::class) ? new Statement(Annotated\MergeIndexes::class) : null, # copy index declarations from all related classes (@Table annotation)
         ]);
 
-        if (\class_exists(GenerateMigrations::class)) {
-            //$generators[] = new Statement(GenerateMigrations::class);
-        }
-
-        return $generators;
+        return array_filter($generators);
     }
 }
