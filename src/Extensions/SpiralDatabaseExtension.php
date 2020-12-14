@@ -30,6 +30,7 @@ use Biurad\Cycle\Compiler;
 use Biurad\Cycle\Database;
 use Biurad\Cycle\Factory;
 use Biurad\Cycle\Migrator;
+use Biurad\Cycle\RepositoryValueResolver;
 use Biurad\DependencyInjection\Extension;
 use Biurad\Framework\Kernel;
 use Cycle\Annotated;
@@ -188,6 +189,9 @@ class SpiralDatabaseExtension extends Extension
                        ORM\Schema::class,
                        [new Statement([new Reference(Compiler::class), 'compile'])]
                    ));
+
+                $container->register($this->prefix('argument_resolver.repository'), RepositoryValueResolver::class)
+                   ->addTag('invoker.argument');
 
                 $container->addAlias('cycleorm', $this->prefix('orm'));
             }
