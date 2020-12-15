@@ -190,8 +190,8 @@ class SpiralDatabaseExtension extends Extension
                        [new Statement([new Reference(Compiler::class), 'compile'])]
                    ));
 
-                $container->register($this->prefix('argument_resolver.repository'), RepositoryValueResolver::class)
-                   ->addTag('invoker.argument');
+                $container->register($this->prefix('argument_RepositoryValueResolver'), RepositoryValueResolver::class)
+                   ->addTag('invoker.argument', 1);
 
                 $container->addAlias('cycleorm', $this->prefix('orm'));
             }

@@ -22,6 +22,7 @@ use DivineNii\Invoker\ArgumentResolver;
 use DivineNii\Invoker\Interfaces\InvokerInterface;
 use DivineNii\Invoker\Invoker;
 use Nette\DI\Definitions\Reference;
+use Nette\PhpGenerator\Helpers;
 
 class InvokerExtension extends Extension
 {
@@ -46,7 +47,9 @@ class InvokerExtension extends Extension
 
         if ($container->findByTag('invoker.argument')) {
             foreach (ArgumentResolver::getDefaultArgumentValueResolvers() as $index => $argument) {
-                $container->register($this->prefix("argument_{$index}"), \get_class($argument))
+                $argumentName = 'argument_' . Helpers::extractShortName(get_class($argument));
+
+                $container->register($this->prefix($argumentName), get_class($argument))
                     ->addTag('invoker.argument', $index);
             }
         }
@@ -54,7 +57,9 @@ class InvokerExtension extends Extension
         $argumentServices = $container->findByTag('invoker.argument');
 
         \uasort($argumentServices, function ($a, $b) {
-            return !(\is_int($a) && \is_int($b)) ? 0 : $b <=> $a;
+            $a = !\is_int($a) ? 0 : $a;
+
+            return $a <=> $b;
         });
 
         // Register as services
