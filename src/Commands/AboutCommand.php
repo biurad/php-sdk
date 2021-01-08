@@ -17,7 +17,6 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Commands;
 
-use Biurad\DependencyInjection\FactoryInterface;
 use Biurad\Framework\Kernels\ConsoleKernel;
 use DateTime;
 use Locale;
@@ -25,7 +24,6 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\TableSeparator;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * A console command to display information about the current installation.
@@ -58,41 +56,33 @@ EOT
     }
 
     /**
-     * This optional method is the first one executed for a command after configure()
-     * and is useful to initialize properties based on the input arguments and options.
-     */
-    protected function initialize(InputInterface $input, OutputInterface $output): void
-    {
-        // SymfonyStyle is an optional feature that Symfony provides so you can
-        // apply a consistent look to the commands of your application.
-        // See https://symfony.com/doc/current/console/style.html
-        $this->io = new SymfonyStyle($input, $output);
-    }
-
-    /**
      * {@inheritdoc}
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        if (!$this->getApplication() instanceof ConsoleKernel) {
+        $application = $this->getApplication();
+
+        if (!$application instanceof ConsoleKernel) {
             return 1;
         }
 
-        /** @var FactoryInterface */
-        $container = $this->getApplication()->getContainer();
+        $container = $application->getContainer();
+        $rootDir   = $container->getParameter('rootDir');
 
         $rows = [
-            ['<info>BiuradPHP</>'],
+            ['<info>Biurad PHP</>'],
             new TableSeparator(),
-            ['Version', '1.0-dev'],
-            ['About', 'See https://docs.biurad.com for more info'],
-            ['Copyright', 'Biurad Lap support@biurad.com'],
+            ['Version', $application->getVersion()],
+            ['Docs', 'See https://docs.biurad.com for more info'],
+            ['Copyright', 'Biurad Lap hello@biurad.com'],
             new TableSeparator(),
             ['<info>Kernel</>'],
             new TableSeparator(),
             ['Type', \get_class($container)],
             ['Environment', $input->hasOption('env') ? $input->getOption('env') : $container->getParameter('envMode')],
             ['Debug', $container->getParameter('debugMode') ? 'true' : 'false'],
+            ['Cache directory', self::formatPath($container->getParameter('tempDir'), $rootDir)],
+            ['Log directory', self::formatPath($container->getParameter('logDir'), $rootDir)],
             new TableSeparator(),
             ['<info>PHP</>'],
             new TableSeparator(),
@@ -136,4 +126,10 @@ EOT
 
         return $vars;
     }
+
+    private static function formatPath(string $path, string $baseDir): string
+    {
+        return preg_replace('~^'.preg_quote($baseDir, '~').'~', '.', $path);
+    }
+
 }
