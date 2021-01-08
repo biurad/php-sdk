@@ -78,7 +78,7 @@ class HttpExtension extends Extension
                     [
                         'allow_paths' => Nette\Schema\Expect::anyOf('*', Expect::bool(),
                             Expect::arrayOf(Expect::structure($this->corsConfig())->castTo('array'))
-                        )->before(Closure::fromCallable([$this, 'normalizeAllowPath'])),
+                        )->default([])->before(Closure::fromCallable([$this, 'normalizeAllowPath'])),
                     ]
                 ))->before(function ($values) {
                     if (isset($values['allow_paths'])) {

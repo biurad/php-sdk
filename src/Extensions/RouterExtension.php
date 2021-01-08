@@ -22,8 +22,9 @@ use Biurad\DependencyInjection\Extension;
 use Biurad\Framework\Commands\Debug\RouteCommand;
 use Biurad\Framework\Debug\Route\RoutesPanel;
 use Biurad\Framework\DependencyInjection\XmlAdapter;
-use Biurad\Framework\ExtensionLoader;
+use Biurad\Framework\Kernel;
 use Biurad\Framework\Listeners\EventRouteListener;
+use Biurad\Framework\Loaders\ExtensionLoader;
 use Biurad\Http\Middlewares\AccessControlMiddleware;
 use Biurad\Http\Middlewares\CacheControlMiddleware;
 use Biurad\Http\Middlewares\ContentSecurityPolicyMiddleware;
@@ -34,13 +35,15 @@ use Biurad\Http\Middlewares\SessionMiddleware;
 use Flight\Routing\Annotation\Listener;
 use Flight\Routing\Interfaces\RouteListenerInterface;
 use Flight\Routing\Middlewares\PathMiddleware;
-use Flight\Routing\RouteCollector;
+use Flight\Routing\RouteList;
 use Flight\Routing\Router as FlightRouter;
 use Nette;
+use Nette\DI\CompilerExtension;
 use Nette\DI\Config\Adapters\NeonAdapter;
 use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\ServiceDefinition;
 use Nette\DI\Definitions\Statement;
+use Nette\Loaders\RobotLoader;
 use Nette\PhpGenerator\PhpLiteral;
 use Nette\Schema\Expect;
 use Psr\Cache\CacheItemPoolInterface;
@@ -57,6 +60,9 @@ class RouterExtension extends Extension
             'namespace'             => Nette\Schema\Expect::string()->default(null),
             'defaults'              => Nette\Schema\Expect::array()->before(function ($value) {
                 return \is_string($value) ? [$value] : $value;
+            }),
+            'resource'              => Nette\Schema\Expect::string()->nullable()->assert(function ($value) {
+                return \is_dir($value) || \class_exists($value) || \interface_exists($value);
             }),
             'requirements'          => Nette\Schema\Expect::array()->before(function ($value) {
                 return \is_string($value) ? [$value] : $value;
@@ -108,7 +114,7 @@ class RouterExtension extends Extension
         $container = $this->getContainerBuilder();
 
         $this->addRoute(
-            $container->register($this->prefix('collector'), RouteCollector::class),
+            $container->register($this->prefix('collector'), RouteList::class),
             $this->getFromConfig('shortcut')
         );
 
@@ -117,12 +123,15 @@ class RouterExtension extends Extension
         }
 
         $router = $container->register($this->prefix('factory'), FlightRouter::class)
-            ->setArgument('profileRoutes', $container->getParameter('debugMode'))
             ->addSetup('addParameters', [$this->getFromConfig('requirements')])
             ->addSetup('addParameters', [
                 $this->getFromConfig('defaults'),
                 new PhpLiteral('Flight\Routing\Router::TYPE_DEFAULT'),
             ]);
+
+        if ($container->getParameter('debugMode')) {
+            $router->addSetup('setProfile');
+        }
 
         if (null !== $this->getFromConfig('namespace')) {
             $router->addSetup('setNamespace', [$this->getFromConfig('namespace')]);
@@ -133,7 +142,7 @@ class RouterExtension extends Extension
             $container->register($this->prefix('annotation_listener'), Listener::class);
         } else {
             $router->addSetup('?->addRoute(??)', [
-                '@self', new PhpLiteral('...'), new Statement([new Reference($this->prefix('collector')), 'getCollection']),
+                '@self', new PhpLiteral('...'), new Statement([new Reference($this->prefix('collector')), 'getRoutes']),
             ]);
         }
 
@@ -149,20 +158,20 @@ class RouterExtension extends Extension
                 PathMiddleware::class,
                 ContentSecurityPolicyMiddleware::class,
                 AccessControlMiddleware::class,
-                HttpMiddleware::class
+                HttpMiddleware::class,
             ],
         );
 
         $router->addSetup('?->addMiddleware(...?)', [
-                '@self',
-                \array_map(function ($middleware) {
-                    if (\is_string($middleware) && \class_exists($middleware)) {
-                        return new PhpLiteral($middleware . '::class');
-                    }
+            '@self',
+            \array_map(function ($middleware) {
+                if (\is_string($middleware) && \class_exists($middleware)) {
+                    return new PhpLiteral($middleware . '::class');
+                }
 
-                    return  $middleware;
-                }, \array_filter($middlewares)),
-            ]);
+                return  $middleware;
+            }, \array_filter($middlewares)),
+        ]);
 
         if ($container->getParameter('consoleMode')) {
             $container->register($this->prefix('command_debug'), RouteCommand::class)
@@ -204,6 +213,30 @@ class RouterExtension extends Extension
     public function beforeCompile(): void
     {
         $container = $this->getContainerBuilder();
+
+        $all = [];
+
+		if (is_string($presenter = $this->getFromConfig('resource'))) {
+            foreach ($container->findByType($presenter) as $def) {
+                $all[$def->getType()] = $def;
+            }
+        }
+
+		$counter = 0;
+		foreach ($this->findControllers() as $class) {
+			if (!isset($all[$class])) {
+				$all[$class] = $container->addDefinition($this->prefix((string) ++$counter))
+					->setType($class);
+			}
+		}
+
+		foreach ($all as $def) {
+			$def->addTag(Nette\DI\Extensions\InjectExtension::TAG_INJECT)
+				->setAutowired(false);
+
+			$this->compiler->addExportedType($def->getType());
+		}
+
         $listeners = $container->findByType(RouteListenerInterface::class);
 
         $container->getDefinitionByType(FlightRouter::class)
@@ -212,6 +245,50 @@ class RouterExtension extends Extension
                 ['@self', $this->getHelper()->getServiceDefinitionsFromDefinitions($listeners)]
             )
             ->addSetup([new Reference('Tracy\Bar'), 'addPanel'], [new Statement(RoutesPanel::class)]);
+    }
+
+    protected function createRobotLoader(): RobotLoader
+    {
+        $robot = new RobotLoader();
+        $robot->addDirectory($this->getFromConfig('resource'));
+        $robot->acceptFiles = ['*.php'];
+        $robot->rebuild();
+
+        return $robot;
+    }
+
+    /**
+     * @return string[]
+     */
+    private function findControllers(): array
+    {
+        if (null === $resource = $this->getFromConfig('resource')) {
+            return [];
+        }
+
+        if (\is_dir($resource)) {
+            $robot   = $this->createRobotLoader();
+            $classes = [];
+
+            foreach (\array_unique(\array_keys($robot->getIndexedClasses())) as $class) {
+                // Skip not existing class
+                if (!\class_exists($class)) {
+                    continue;
+                }
+
+                // Remove `Biurad\Framework\Kernel` class
+                if (\is_subclass_of($class, Kernel::class) || \is_subclass_of($class, CompilerExtension::class)) {
+                    continue;
+                }
+
+                $classes[] = $class;
+            }
+
+            return $classes;
+        }
+        $container = $this->getContainerBuilder();
+
+        return $this->findClasses([$container->getParameter('appDir')], $resource);
     }
 
     private function addRoute(ServiceDefinition $collector, $routes): void
@@ -235,7 +312,7 @@ class RouterExtension extends Extension
             // Route on debug mode
             if ($container->getParameter('debugMode') && $route->mode == 'DEBUG-MODE') {
                 $collector->addSetup(
-                    "?->map(?, ?, ?, ?){$host}{$middlewares}{$defaults}{$requirements}{$arguments}",
+                    "?->addRoute(?, ?, ?, ?){$host}{$middlewares}{$defaults}{$requirements}{$arguments}",
                     ['@self', $name, $methods, $route->path, $route->controller]
                 );
 
@@ -245,7 +322,7 @@ class RouterExtension extends Extension
             // Route on deploy mode
             if ($container->getParameter('productionMode') && $route->mode == 'DEPLOY-MODE') {
                 $collector->addSetup(
-                    "?->map(?, ?, ?, ?){$host}{$middlewares}{$defaults}{$requirements}{$arguments}",
+                    "?->addRoute(?, ?, ?, ?){$host}{$middlewares}{$defaults}{$requirements}{$arguments}",
                     ['@self', $name, $methods, $route->path, $route->controller]
                 );
 
@@ -255,7 +332,7 @@ class RouterExtension extends Extension
             // Route on all mode
             if (null === $route->mode) {
                 $collector->addSetup(
-                    "?->map(?, ?, ?, ?){$host}{$middlewares}{$defaults}{$requirements}{$arguments}",
+                    "?->addRoute(?, ?, ?, ?){$host}{$middlewares}{$defaults}{$requirements}{$arguments}",
                     ['@self', $name, $methods, $route->path, $route->controller]
                 );
             }
