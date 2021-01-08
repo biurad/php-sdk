@@ -41,6 +41,7 @@ use Cycle\Schema\Generator;
 use Cycle\Schema\GeneratorInterface;
 use Cycle\Schema\Registry;
 use Nette;
+use Nette\DI\CompilerExtension;
 use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\Statement;
 use Nette\Loaders\RobotLoader;
@@ -224,7 +225,7 @@ class SpiralDatabaseExtension extends Extension
             }
 
             // Remove `Biurad\Framework\Kernel` class
-            if (\is_subclass_of($class, Kernel::class)) {
+            if (\is_subclass_of($class, Kernel::class) || \is_subclass_of($class, CompilerExtension::class)) {
                 continue;
             }
 

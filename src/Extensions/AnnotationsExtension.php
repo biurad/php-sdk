@@ -27,6 +27,7 @@ use Doctrine\Common\Annotations\AnnotationRegistry;
 use Doctrine\Common\Annotations\CachedReader;
 use Doctrine\Common\Cache\Cache as DoctrineCache;
 use Nette;
+use Nette\DI\CompilerExtension;
 use Nette\DI\Definitions\Definition;
 use Nette\DI\Definitions\Statement;
 use Nette\Loaders\RobotLoader;
@@ -70,6 +71,15 @@ class AnnotationsExtension extends Extension
         $container = $this->getContainerBuilder();
         $doctrine  = \class_exists(AnnotationReader::class) ? DoctrineReader::class : null;
 
+        if (null !== $doctrine) {
+            $readerDefinition = $container->register($this->prefix('delegated'), AnnotationReader::class);
+
+            foreach ($this->config->ignore as $annotationName) {
+                $readerDefinition->addSetup('addGlobalIgnoredName', [$annotationName]);
+                AnnotationReader::addGlobalIgnoredName($annotationName);
+            }
+        }
+
         if (\class_exists(AnnotationLoader::class)) {
             $reader = new Statement(AttributeReader::class);
 
@@ -87,7 +97,7 @@ class AnnotationsExtension extends Extension
                 }
 
                 // Remove `Biurad\Framework\Kernel` class
-                if (\is_subclass_of($class, Kernel::class)) {
+                if (\is_subclass_of($class, Kernel::class) || \is_subclass_of($class, CompilerExtension::class)) {
                     continue;
                 }
 
@@ -97,17 +107,6 @@ class AnnotationsExtension extends Extension
             $container->register($this->prefix('loader'), AnnotationLoader::class)
                 ->setArgument('reader', $reader)
                 ->addSetup('?->attach(...?)', ['@self', $classes]);
-        }
-
-        if (null === $doctrine) {
-            return;
-        }
-
-        $readerDefinition = $container->register($this->prefix('delegated'), AnnotationReader::class);
-
-        foreach ($this->config->ignore as $annotationName) {
-            $readerDefinition->addSetup('addGlobalIgnoredName', [$annotationName]);
-            AnnotationReader::addGlobalIgnoredName($annotationName);
         }
     }
 

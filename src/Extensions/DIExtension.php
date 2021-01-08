@@ -83,9 +83,12 @@ final class DIExtension extends Nette\DI\CompilerExtension
 
     public function beforeCompile(): void
     {
+        $builder = $this->getContainerBuilder();
         if (!$this->config->export->parameters) {
-            $this->getContainerBuilder()->parameters = [];
+            $builder->parameters = [];
         }
+
+        //$builder->parameters['extensions'] = $this->compiler->getExtensions();
     }
 
     public function afterCompile(Nette\PhpGenerator\ClassType $class): void
