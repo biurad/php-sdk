@@ -29,7 +29,7 @@ use Iterator;
 use IteratorAggregate;
 use JsonSerializable;
 use Nette;
-use Nette\Configurator;
+use Nette\Bootstrap\Configurator;
 use Nette\DI;
 use Psr\Container\ContainerInterface;
 use ReflectionClass;
@@ -101,13 +101,13 @@ class ContainerLoader extends Configurator
     {
         $loader = new Loader(
             $this->getCacheDirectory() . '/nette.configurator',
-            $this->parameters['debugMode']
+            $this->staticParameters['debugMode']
         );
 
         return $loader->load(
             Closure::fromCallable([$this, 'generateContainer']),
             [
-                $this->parameters,
+                $this->staticParameters,
                 \array_keys($this->dynamicParameters),
                 $this->configs,
                 \PHP_VERSION_ID - \PHP_RELEASE_VERSION, // minor PHP version
