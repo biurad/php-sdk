@@ -26,6 +26,7 @@ use Biurad\Framework\KernelEvents;
 use Biurad\Http\Response;
 use Exception;
 use GuzzleHttp\Exception\BadResponseException;
+use Laminas\HttpHandlerRunner\Emitter\SapiStreamEmitter;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
@@ -62,6 +63,10 @@ class EventsKernel extends HttpKernel
             $response = $this->filterResponse($response, $request);
 
             $this->terminate($request, $response);
+
+            if (static::class === __CLASS__) {
+                (new SapiStreamEmitter())->emit($response);
+            }
         }
     }
 

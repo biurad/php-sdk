@@ -38,7 +38,7 @@ class HttpKernel extends AbstractKernel
         $response = parent::serve($request, $catch);
 
         // Send response to  the browser...
-        if ($response instanceof ResponseInterface) {
+        if (static::class === __CLASS__ && $response instanceof ResponseInterface) {
             (new SapiStreamEmitter())->emit($response);
         }
 
