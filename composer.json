@@ -1,8 +1,8 @@
 {
     "name": "biurad/php-sdk",
     "type": "library",
-    "description": "A PHP framework for nette, build with biurad libraries",
-    "keywords": ["mvc","framework","biurad","php7"],
+    "description": "A modern PHP framework, build with nette, symfony and biurad libraries",
+    "keywords": ["mvc","framework","biurad","php"],
     "homepage": "https://www.biurad.com",
     "license": "BSD-3-Clause",
     "authors": [
@@ -25,14 +25,18 @@
         "php": "^7.2 || ^8.0",
         "ext-json": "*",
         "ext-mbstring": "*",
+        "ext-xml": "*",
         "biurad/dependency-injection": "1.x-dev",
         "biurad/http-galaxy": "1.x-dev",
+        "composer/package-versions-deprecated": "^1.11",
         "divineniiquaye/flight-routing": "1.x-dev",
         "nette/bootstrap": "^3.0",
         "psr/log": "^1.1",
         "symfony/console": "^5.1",
+        "symfony/polyfill-mbstring": "~1.0",
+        "symfony/polyfill-php73": "^1.11",
+        "symfony/polyfill-php80": "^1.15",
         "symfony/process": "^5.1",
-        "symfony/web-link": "^5.1",
         "tracy/tracy": "^2.7"
     },
     "require-dev": {
@@ -42,7 +46,6 @@
         "biurad/events-bus": "1.x-dev",
         "biurad/flysystem": "1.x-dev",
         "biurad/templating": "1.x-dev",
-        "composer/package-versions-deprecated": "^1.11",
         "cycle/annotated": "^2.0",
         "cycle/migrations": "^1.0",
         "doctrine/annotations": "^1.11",
