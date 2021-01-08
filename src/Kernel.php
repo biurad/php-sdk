@@ -71,7 +71,7 @@ abstract class Kernel
      */
     protected static function initializeApp(Directory $directories, bool $handleErrors = true)
     {
-        $loader = new ContainerLoader(); // Boot the CoreKenel for processes to begin...
+        $loader = new Loaders\ContainerLoader(); // Boot the CoreKenel for processes to begin...
         $loader->setTempDirectory($directories['tempDir']);
 
         // Let's enable our debugger our exceptions first.

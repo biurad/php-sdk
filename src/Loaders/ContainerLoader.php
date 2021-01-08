@@ -15,12 +15,12 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Biurad\Framework;
+namespace Biurad\Framework\Loaders;
 
 use ArrayAccess;
 use Biurad;
+use Biurad\DependencyInjection\Adapters;
 use Biurad\DependencyInjection\Loader;
-use Biurad\DependencyInjection\XmlAdapter;
 use Closure;
 use Composer\Autoload\ClassLoader;
 use Contributte;
@@ -31,9 +31,6 @@ use JsonSerializable;
 use Nette;
 use Nette\Configurator;
 use Nette\DI;
-use Nette\DI\Config\Adapters\NeonAdapter;
-use Nette\Neon;
-use Nette\Utils\FileSystem;
 use Psr\Container\ContainerInterface;
 use ReflectionClass;
 use Serializable;
@@ -59,7 +56,7 @@ class ContainerLoader extends Configurator
         'callable'      => Biurad\Framework\Extensions\InvokerExtension::class,
         'cache'         => Biurad\Framework\Extensions\CacheExtension::class,
         'annotation'    => Biurad\Framework\Extensions\AnnotationsExtension::class,
-        'events'        => [Biurad\Framework\Extensions\EventDispatcherExtension::class, ['%appDir%']],
+        'events'        => Biurad\Framework\Extensions\EventDispatcherExtension::class,
         'http'          => [Biurad\Framework\Extensions\HttpExtension::class, ['%tempDir%/session']],
         'routing'       => Biurad\Framework\Extensions\RouterExtension::class,
         'filesystem'    => Biurad\Framework\Extensions\FileManagerExtension::class,
@@ -126,17 +123,12 @@ class ContainerLoader extends Configurator
     {
         $trace     = \debug_backtrace(\DEBUG_BACKTRACE_IGNORE_ARGS);
         $last      = \end($trace);
-        $debugMode = static::detectDebugMode();
-        $loaderRc  = \class_exists(ClassLoader::class) ? new ReflectionClass(ClassLoader::class) : null;
+        $defaults  = parent::getDefaultParameters();
 
-        return [
-            'appDir'         => isset($trace[2]['file']) ? \dirname($trace[2]['file']) : null,
-            'wwwDir'         => isset($last['file']) ? \dirname($last['file']) : null,
-            'vendorDir'      => $loaderRc ? \dirname($loaderRc->getFileName(), 2) : null,
-            'debugMode'      => $debugMode,
-            'productionMode' => !$debugMode,
-            'consoleMode'    => \PHP_SAPI === 'cli',
-        ];
+        return array_replace($defaults, [
+            'appDir' => isset($trace[2]['file']) ? \dirname($trace[2]['file']) : null,
+            'wwwDir' => isset($last['file']) ? \dirname($last['file']) : null,
+        ]);
     }
 
     /**
@@ -144,35 +136,11 @@ class ContainerLoader extends Configurator
      */
     protected function createLoader(): DI\Config\Loader
     {
-        $yamlAdapter = new class() implements Di\Config\Adapter {
-            /**
-             * {@inheritdoc}
-             */
-            public function load(string $file): array
-            {
-                // So yaml syntax could work properly
-                $contents = \str_replace(
-                    ['~', '\'false\'', '\'true\'', '"false"', '"true"'],
-                    ['null', 'false', 'true', 'false', 'true'],
-                    FileSystem::read($file)
-                );
+        $loader = parent::createLoader();
 
-                return (new NeonAdapter())->process((array) Neon\Neon::decode($contents));
-            }
-
-            /**
-             * Generates configuration in NEON format.
-             */
-            public function dump(array $data): string
-            {
-                return (new NeonAdapter())->dump($data);
-            }
-        };
-
-        $loader = new DI\Config\Loader();
-        $loader->addAdapter('yaml', $yamlAdapter);
-        $loader->addAdapter('yml', $yamlAdapter);
-        $loader->addAdapter('xml', XmlAdapter::class);
+        $loader->addAdapter('yaml', Adapters\YamlAdapter::class);
+        $loader->addAdapter('yml', Adapters\YamlAdapter::class);
+        $loader->addAdapter('xml', Adapters\XmlAdapter::class);
 
         return $loader;
     }

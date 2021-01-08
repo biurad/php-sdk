@@ -15,7 +15,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Biurad\Framework;
+namespace Biurad\Framework\Loaders;
 
 use Composer\Autoload\ClassLoader;
 use Composer\InstalledVersions;
