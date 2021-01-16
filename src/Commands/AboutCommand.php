@@ -24,6 +24,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\TableSeparator;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * A console command to display information about the current installation.
@@ -68,6 +69,7 @@ EOT
 
         $container = $application->getContainer();
         $rootDir   = $container->getParameter('rootDir');
+        $io        = new SymfonyStyle($input, $output);
 
         $rows = [
             ['<info>Biurad PHP</>'],
@@ -105,7 +107,7 @@ EOT
             }, $dotenv, \array_keys($dotenv)));
         }
 
-        $this->io->table([], $rows);
+        $io->table([], $rows);
 
         return 0;
     }
@@ -129,7 +131,6 @@ EOT
 
     private static function formatPath(string $path, string $baseDir): string
     {
-        return preg_replace('~^'.preg_quote($baseDir, '~').'~', '.', $path);
+        return \preg_replace('~^' . \preg_quote($baseDir, '~') . '~', '.', $path);
     }
-
 }
