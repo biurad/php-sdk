@@ -17,7 +17,7 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Event;
 
-use Biurad\Framework\Interfaces\KernelInterface;
+use Biurad\Framework\Kernels\KernelInterface;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 

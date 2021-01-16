@@ -19,8 +19,8 @@ namespace Biurad\Framework\Listeners;
 
 use Biurad\Framework\Event\ControllerArgumentsEvent;
 use Biurad\Framework\Event\ControllerEvent;
-use Biurad\Framework\Interfaces\KernelInterface;
 use Biurad\Framework\KernelEvents;
+use Biurad\Framework\Kernels\KernelInterface;
 use Flight\Routing\Interfaces\RouteInterface;
 use Flight\Routing\Interfaces\RouteListenerInterface;
 use Psr\Http\Message\ServerRequestInterface;
