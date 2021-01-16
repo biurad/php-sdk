@@ -21,7 +21,6 @@ use Biurad\Annotations\AnnotationLoader;
 use Biurad\DependencyInjection\Extension;
 use Biurad\Framework\Commands\Debug\RouteCommand;
 use Biurad\Framework\Debug\Route\RoutesPanel;
-use Biurad\Framework\DependencyInjection\XmlAdapter;
 use Biurad\Framework\Kernel;
 use Biurad\Framework\Listeners\EventRouteListener;
 use Biurad\Framework\Loaders\ExtensionLoader;
@@ -39,7 +38,6 @@ use Flight\Routing\RouteList;
 use Flight\Routing\Router as FlightRouter;
 use Nette;
 use Nette\DI\CompilerExtension;
-use Nette\DI\Config\Adapters\NeonAdapter;
 use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\ServiceDefinition;
 use Nette\DI\Definitions\Statement;
@@ -122,12 +120,7 @@ class RouterExtension extends Extension
             $container->register($this->prefix('route_listener'), EventRouteListener::class);
         }
 
-        $router = $container->register($this->prefix('factory'), FlightRouter::class)
-            ->addSetup('addParameters', [$this->getFromConfig('requirements')])
-            ->addSetup('addParameters', [
-                $this->getFromConfig('defaults'),
-                new PhpLiteral('Flight\Routing\Router::TYPE_DEFAULT'),
-            ]);
+        $router = $container->register($this->prefix('factory'), FlightRouter::class);
 
         if ($container->getParameter('debugMode')) {
             $router->addSetup('setProfile');
@@ -135,6 +128,17 @@ class RouterExtension extends Extension
 
         if (null !== $this->getFromConfig('namespace')) {
             $router->addSetup('setNamespace', [$this->getFromConfig('namespace')]);
+        }
+
+        if (!empty($this->getFromConfig('requirements'))) {
+            $router->addSetup('addParameters', [$this->getFromConfig('requirements')]);
+        }
+
+        if (!empty($this->getFromConfig('defaults'))) {
+            $router->addSetup('addParameters', [
+                $this->getFromConfig('defaults'),
+                new PhpLiteral('Flight\Routing\Router::TYPE_DEFAULT'),
+            ]);
         }
 
         if ($container->getByType(AnnotationLoader::class)) {
@@ -197,9 +201,6 @@ class RouterExtension extends Extension
         }
 
         $loader = $this->createLoader();
-        $loader->addAdapter('yml', NeonAdapter::class);
-        $loader->addAdapter('yaml', NeonAdapter::class);
-        $loader->addAdapter('xml', XmlAdapter::class);
 
         $res = $loader->load($file);
         $this->compiler->addDependencies($loader->getDependencies());
@@ -216,26 +217,25 @@ class RouterExtension extends Extension
 
         $all = [];
 
-		if (is_string($presenter = $this->getFromConfig('resource'))) {
+        if (\is_string($presenter = $this->getFromConfig('resource'))) {
             foreach ($container->findByType($presenter) as $def) {
                 $all[$def->getType()] = $def;
             }
         }
 
-		$counter = 0;
-		foreach ($this->findControllers() as $class) {
-			if (!isset($all[$class])) {
-				$all[$class] = $container->addDefinition($this->prefix((string) ++$counter))
-					->setType($class);
-			}
-		}
+        $counter = 0;
 
-		foreach ($all as $def) {
-			$def->addTag(Nette\DI\Extensions\InjectExtension::TAG_INJECT)
-				->setAutowired(false);
+        foreach ($this->findControllers() as $class) {
+            if (!isset($all[$class])) {
+                $all[$class] = $container->addDefinition($this->prefix('.handler.' . (string) ++$counter))
+                    ->setType($class);
+            }
+        }
 
-			$this->compiler->addExportedType($def->getType());
-		}
+        foreach ($all as $def) {
+            $def->addTag(Nette\DI\Extensions\InjectExtension::TAG_INJECT)
+                ->setAutowired(false);
+        }
 
         $listeners = $container->findByType(RouteListenerInterface::class);
 
@@ -299,15 +299,15 @@ class RouterExtension extends Extension
             $methods      = empty($route->methods) ? ['GET', 'HEAD'] : $route->methods;
             $name         = null !== $route->name ? $route->name : 'generated_route_' . $index;
             $host         = null !== $route->domain
-                ? $container->formatPhp('->setDomain(?)', [$route->domain]) : null;
+                ? $container->literal('->setDomain(?)', [$route->domain]) : null;
             $defaults     = !empty($route->defaults)
-                ? $container->formatPhp('->setDefaults(?)', [$this->resolveArugments($route->defaults)]) : null;
+                ? $container->literal('->setDefaults(?)', [$this->resolveArugments($route->defaults)]) : null;
             $requirements = !empty($route->requirements)
-                ? $container->formatPhp('->setPatterns(?)', [$this->resolveArugments($route->requirements)]) : null;
+                ? $container->literal('->setPatterns(?)', [$this->resolveArugments($route->requirements)]) : null;
             $middlewares  = !empty($route->middlewares)
-                ? $container->formatPhp('->addMiddleware(...?)', [$route->middlewares]) : null;
+                ? $container->literal('->addMiddleware(...?)', [$route->middlewares]) : null;
             $arguments    = null !== $route->arguments
-                ? $container->formatPhp('->setArguments(?)', [$this->resolveArugments($route->arguments)]) : null;
+                ? $container->literal('->setArguments(?)', [$this->resolveArugments($route->arguments)]) : null;
 
             // Route on debug mode
             if ($container->getParameter('debugMode') && $route->mode == 'DEBUG-MODE') {

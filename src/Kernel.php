@@ -17,9 +17,9 @@ declare(strict_types=1);
 
 namespace Biurad\Framework;
 
-use Nette\Configurator;
+use Biurad\DependencyInjection\FactoryInterface;
+use Nette\Bootstrap\Configurator;
 use Nette\SmartObject;
-use Psr\Container\ContainerInterface;
 use Throwable;
 
 /**
@@ -55,7 +55,7 @@ abstract class Kernel
      *
      * @throws Throwable
      *
-     * @return ContainerInterface
+     * @return FactoryInterface
      */
     abstract public static function boot(Directory $directories, bool $handleErrors = true);
 
@@ -67,7 +67,7 @@ abstract class Kernel
      *
      * @throws Throwable
      *
-     * @return null|ContainerInterface
+     * @return null|FactoryInterface
      */
     protected static function initializeApp(Directory $directories, bool $handleErrors = true)
     {
