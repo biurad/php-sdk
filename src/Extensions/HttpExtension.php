@@ -18,8 +18,6 @@ declare(strict_types=1);
 namespace Biurad\Framework\Extensions;
 
 use Biurad\DependencyInjection\Extension;
-use Biurad\Framework\Interfaces\DispatcherInterface;
-use Biurad\Framework\Interfaces\KernelInterface;
 use Biurad\Http\Factories\GuzzleHttpPsr7Factory;
 use Biurad\Http\Factory\CookieFactory;
 use Biurad\Http\Interfaces\CspInterface;
@@ -168,22 +166,6 @@ class HttpExtension extends Extension
             ]);
 
         $container->addAlias('session', $this->prefix('session'));
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public function beforeCompile(): void
-    {
-        $container = $this->getContainerBuilder();
-        $listeners = $container->findByType(DispatcherInterface::class);
-
-        // Register as services
-        $container->getDefinitionByType(KernelInterface::class)
-            ->addSetup(
-                '?->addDispatcher(...?)',
-                ['@self', $this->getHelper()->getServiceDefinitionsFromDefinitions($listeners)]
-            );
     }
 
     private function corsConfig(): array

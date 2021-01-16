@@ -19,17 +19,20 @@ namespace Biurad\Framework\Kernels;
 
 use Biurad\Framework\AbstractKernel;
 use Biurad\Http\Response;
+use Flight\Routing\Router;
 use GuzzleHttp\Exception\BadResponseException;
 use Laminas\HttpHandlerRunner\Emitter\SapiStreamEmitter;
 use Nette\Utils\Helpers;
 use Psr\Http\Message\ResponseFactoryInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use RuntimeException;
+use Symfony\Component\Console\Application;
 use Throwable;
 
 class HttpKernel extends AbstractKernel
 {
+    public const MAX_REQUEST = 20;
+
     /**
      * {@inheritdoc}
      */
@@ -50,13 +53,18 @@ class HttpKernel extends AbstractKernel
      */
     public function handleRequest(ServerRequestInterface $request)
     {
-        foreach ($this->dispatchers as $dispatcher) {
-            if ($dispatcher->canServe()) {
-                return $this->container->callMethod([$dispatcher, 'serve'], [$this, $request]);
+        if ($this->isRunningInConsole()) {
+            /** @var Application $application */
+            $application = $this->container->get(Application::class);
+
+            if ($this instanceof EventsKernel) {
+                $application->setDispatcher($this->getEventDisptacher());
             }
+
+            return $application->run();
         }
 
-        throw new RuntimeException('Unable to locate active dispatcher.');
+        return $this->container->get(Router::class)->handle($request);
     }
 
     /**
@@ -64,7 +72,7 @@ class HttpKernel extends AbstractKernel
      */
     protected function handleThrowable(Throwable $e, ServerRequestInterface $request): ResponseInterface
     {
-        if (null === $this->container->getParameter('env.APP_ERROR_PAGE')) {
+        if (null === $errorPage = $this->container->getParameter('env.APP_ERROR_PAGE')) {
             throw $e;
         }
 
@@ -80,15 +88,13 @@ class HttpKernel extends AbstractKernel
             $response = $response->withStatus(500);
         }
 
-        if (null !== $errorPage = $this->container->getParameter('env.APP_ERROR_PAGE')) {
-            $response->getBody()->write(
-                Helpers::capture(
-                    function () use ($request, $e, $errorPage): void {
-                        require \sprintf('%s/%s', $this->getBase(), $errorPage);
-                    }
-                )
-            );
-        }
+        $response->getBody()->write(
+            Helpers::capture(
+                function () use ($request, $e, $errorPage): void {
+                    require \sprintf('%s/%s', $this->getBase(), ltrim($errorPage, '\/'));
+                }
+            )
+        );
 
         return $response;
     }

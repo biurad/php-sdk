@@ -18,14 +18,11 @@ declare(strict_types=1);
 namespace Biurad\Framework\Extensions;
 
 use Biurad\DependencyInjection\Extension;
-use Biurad\Framework\Dispatchers\CliDispatcher;
-use Biurad\Framework\Dispatchers\HttpDispatcher;
-use Biurad\Framework\ExtensionLoader;
-use Biurad\Framework\Interfaces\KernelInterface;
+use Biurad\Framework\Loaders\ExtensionLoader;
+use Biurad\Framework\Kernels\KernelInterface;
 use Biurad\Framework\Kernels\EventsKernel;
 use Biurad\Framework\Kernels\HttpKernel;
 use Nette;
-use Nette\DI\Definitions\Statement;
 use Nette\Schema\Expect;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
@@ -40,11 +37,10 @@ class FrameworkExtension extends Extension
     {
         return Nette\Schema\Expect::structure([
             'content_security_policy' => Nette\Schema\Expect::bool(false),
-            'error_template'          => Nette\Schema\Expect::string(),
-            'dispatchers'             => Nette\Schema\Expect::listOf(Expect::string()->assert('class_exists'))
-                ->default([HttpDispatcher::class, CliDispatcher::class]),
+            'error_template'          => Nette\Schema\Expect::string()->nullable(),
+            'kernel_class'            => Nette\Schema\Expect::string()->nullable()->assert('class_exists'),
             'imports'                 => Nette\Schema\Expect::list(),
-            'cache_driver'            => Nette\Schema\Expect::string()->default(\extension_loaded('apcu') ? 'apcu' : 'array'),
+            'cache_driver'            => Expect::string()->default(\extension_loaded('apcu') ? 'apcu' : 'array'),
         ])->castTo('array');
     }
 
@@ -54,6 +50,10 @@ class FrameworkExtension extends Extension
     public function loadConfiguration(): void
     {
         $container = $this->getContainerBuilder();
+
+        if (null !== $errorPage = $this->getFromConfig('error_template')) {
+            $container->setParameter('env.APP_ERROR_PAGE', $errorPage);
+        }
 
         foreach ($this->compiler->getExtensions() as $name => $extension) {
             foreach ($this->getFromConfig('imports') as $resource) {
@@ -67,20 +67,13 @@ class FrameworkExtension extends Extension
             }
         }
 
-        $container->register(
-            $this->prefix('app'),
-            \class_exists(EventDispatcher::class) ? EventsKernel::class : HttpKernel::class
-        )
-        ->setType(KernelInterface::class)
-        ->addSetup('?->addDispatcher(...?)', [
-            '@self',
-            \array_map(
-                function (string $dispatcher) {
-                    return new Statement($dispatcher);
-                },
-                $this->getFromConfig('dispatchers')
-            ), ]);
+        $kernelClass = \class_exists(EventDispatcher::class) ? EventsKernel::class : HttpKernel::class;
 
+        if (null !== $this->getFromConfig('kernel_class')) {
+            $kernelClass = $this->getFromConfig('kernel_class');
+        }
+
+        $container->register($this->prefix('app'), $kernelClass)->setType(KernelInterface::class);
         $container->addAlias('application', $this->prefix('app'));
     }
 

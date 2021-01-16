@@ -18,8 +18,6 @@ declare(strict_types=1);
 namespace Biurad\Framework;
 
 use Biurad\DependencyInjection\FactoryInterface;
-use Biurad\Framework\Interfaces\DispatcherInterface;
-use Biurad\Framework\Interfaces\KernelInterface;
 use Exception;
 use GuzzleHttp\Exception\BadResponseException;
 use Nette\SmartObject;
@@ -28,7 +26,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
-abstract class AbstractKernel implements KernelInterface
+abstract class AbstractKernel implements Kernels\KernelInterface
 {
     use SmartObject;
 
@@ -37,9 +35,6 @@ abstract class AbstractKernel implements KernelInterface
 
     /** @var FactoryInterface */
     protected $container;
-
-    /** @var DispatcherInterface[] */
-    protected $dispatchers = [];
 
     /** @var LoggerInterface */
     protected $logger;
@@ -55,16 +50,6 @@ abstract class AbstractKernel implements KernelInterface
         $this->logger    = $logger;
         $this->container = $dependencyContainer;
         $this->base      = $dependencyContainer->getParameter('rootDir') ?? null;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function addDispatcher(DispatcherInterface ...$dispatchers): void
-    {
-        foreach ($dispatchers as $dispatcher) {
-            $this->dispatchers[] = $dispatcher;
-        }
     }
 
     /**

@@ -15,7 +15,7 @@ declare(strict_types=1);
  * file that was distributed with this source code.
  */
 
-namespace Biurad\Framework\Interfaces;
+namespace Biurad\Framework\Kernels;
 
 use Exception;
 use Psr\Http\Message\ServerRequestInterface;
@@ -42,14 +42,6 @@ interface KernelInterface
      * @return mixed
      */
     public function serve(ServerRequestInterface $request, bool $catch = true);
-
-    /**
-     * Add new dispatcher(s). This method must only be called before method `serve`
-     * will be invoked.
-     *
-     * @param DispatcherInterface ...$dispatchers
-     */
-    public function addDispatcher(DispatcherInterface ...$dispatchers): void;
 
     /**
      * Get the Nette DI container
