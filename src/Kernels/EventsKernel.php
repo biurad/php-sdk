@@ -68,6 +68,8 @@ class EventsKernel extends HttpKernel
                 (new SapiStreamEmitter())->emit($response);
             }
         }
+
+        return $response;
     }
 
     /**

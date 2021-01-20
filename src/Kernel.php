@@ -77,7 +77,12 @@ abstract class Kernel
         // Let's enable our debugger our exceptions first.
         if (false !== $handleErrors) {
             //$loader->setDebugMode('23.75.345.200'); // enable for your remote IP
-            //$loader->setDebugMode(false); // uncomment to start in production mode
+
+            // If this exist in Heroku server, serve debug mode then ...
+            if (isset($_SERVER['HEROKU_SERVER_MODE'])) {
+                $loader->setDebugMode(true);
+            }
+
             $loader->enableDebugger($directories['logDir'] ?? null);
         }
 
