@@ -227,7 +227,7 @@ class RouterExtension extends Extension
 
         foreach ($this->findControllers() as $class) {
             if (!isset($all[$class])) {
-                $all[$class] = $container->addDefinition($this->prefix('.handler.' . (string) ++$counter))
+                $all[$class] = $container->addDefinition($this->prefix('handler.' . (string) ++$counter))
                     ->setType($class);
             }
         }
@@ -238,13 +238,16 @@ class RouterExtension extends Extension
         }
 
         $listeners = $container->findByType(RouteListenerInterface::class);
+        $router    = $container->getDefinitionByType(FlightRouter::class);
 
-        $container->getDefinitionByType(FlightRouter::class)
-            ->addSetup(
+        if (!empty($listeners)) {
+            $router->addSetup(
                 '?->addRouteListener(...?)',
                 ['@self', $this->getHelper()->getServiceDefinitionsFromDefinitions($listeners)]
-            )
-            ->addSetup([new Reference('Tracy\Bar'), 'addPanel'], [new Statement(RoutesPanel::class)]);
+            );
+        }
+
+        $router->addSetup([new Reference('Tracy\Bar'), 'addPanel'], [new Statement(RoutesPanel::class)]);
     }
 
     protected function createRobotLoader(): RobotLoader
