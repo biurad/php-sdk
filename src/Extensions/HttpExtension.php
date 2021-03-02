@@ -28,7 +28,6 @@ use Biurad\Http\Session;
 use Biurad\Http\Sessions\HandlerFactory;
 use Biurad\Http\Sessions\Storage\NativeSessionStorage;
 use Biurad\Http\Strategies\ContentSecurityPolicy;
-use Closure;
 use Nette;
 use Nette\DI\Definitions\Statement;
 use Nette\Schema\Expect;
@@ -76,7 +75,7 @@ class HttpExtension extends Extension
                     [
                         'allow_paths' => Nette\Schema\Expect::anyOf('*', Expect::bool(),
                             Expect::arrayOf(Expect::structure($this->corsConfig())->castTo('array'))
-                        )->default([])->before(Closure::fromCallable([$this, 'normalizeAllowPath'])),
+                        )->default([])->before(\Closure::fromCallable([$this, 'normalizeAllowPath'])),
                     ]
                 ))->before(function ($values) {
                     if (isset($values['allow_paths'])) {

@@ -53,7 +53,7 @@ abstract class Kernel
      * @param Directory $directories  directory map, "root", "tempDir", and "configDir" is required
      * @param bool      $handleErrors enable global error handling
      *
-     * @throws Throwable
+     * @throws \Throwable
      *
      * @return FactoryInterface
      */
@@ -65,7 +65,7 @@ abstract class Kernel
      * @param Directory $directories  directory map, "root", "tempDir", and "configDir" is required
      * @param bool      $handleErrors enable global error handling
      *
-     * @throws Throwable
+     * @throws \Throwable
      *
      * @return null|FactoryInterface
      */

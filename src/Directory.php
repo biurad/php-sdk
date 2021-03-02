@@ -17,12 +17,9 @@ declare(strict_types=1);
 
 namespace Biurad\Framework;
 
-use ArrayObject;
-use Closure;
 use Nette\Schema;
-use RuntimeException;
 
-class Directory extends ArrayObject
+class Directory extends \ArrayObject
 {
     /**
      * @param array<string,string> $directories
@@ -35,7 +32,7 @@ class Directory extends ArrayObject
             'tempDir'    => Schema\Expect::string()->required(),
             'logDir'     => Schema\Expect::string(),
             'envFile'    => Schema\Expect::string(),
-        ])->before(Closure::fromCallable([$this, 'resolveDirectories']))
+        ])->before(\Closure::fromCallable([$this, 'resolveDirectories']))
             ->castTo('array');
 
         try {
@@ -44,7 +41,7 @@ class Directory extends ArrayObject
             throw new RuntimeException('Data are not valid: ' . $e->getMessage());
         }
 
-        parent::__construct($normalized, ArrayObject::ARRAY_AS_PROPS);
+        parent::__construct($normalized, \ArrayObject::ARRAY_AS_PROPS);
     }
 
     /**

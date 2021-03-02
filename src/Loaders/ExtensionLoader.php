@@ -22,12 +22,6 @@ use Composer\InstalledVersions;
 use Nette\DI\CompilerExtension;
 use Nette\InvalidArgumentException;
 use Nette\NotSupportedException;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
-use ReflectionClass;
-use ReflectionObject;
-use RuntimeException;
-use SplFileInfo;
 
 class ExtensionLoader
 {
@@ -61,10 +55,10 @@ class ExtensionLoader
             throw new NotSupportedException(\sprintf('Resource path is not supported for %s', $bundleName));
         }
 
-        /** @var RecursiveIteratorIterator|SplFileInfo[] $iterator */
-        $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($bundlePath = self::findComposerDirectory($extension)),
-            RecursiveIteratorIterator::LEAVES_ONLY
+        /** @var \RecursiveIteratorIterator|\SplFileInfo[] $iterator */
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($bundlePath = self::findComposerDirectory($extension)),
+            \RecursiveIteratorIterator::LEAVES_ONLY
         );
 
         foreach ($iterator as $file) {
@@ -83,8 +77,8 @@ class ExtensionLoader
      */
     private static function findComposerDirectory(CompilerExtension $extension): string
     {
-        $path      = \dirname((new ReflectionClass(ClassLoader::class))->getFileName());
-        $directory = \dirname((new ReflectionObject($extension))->getFileName());
+        $path      = \dirname((new \ReflectionClass(ClassLoader::class))->getFileName());
+        $directory = \dirname((new \ReflectionObject($extension))->getFileName());
 
         foreach (self::getPackagist($path . '/installed.json') as $package) {
             $packagePath = \str_replace(['\\', '/'], \DIRECTORY_SEPARATOR, \dirname($path, 1) . '/' . $package['name']);
@@ -117,7 +111,7 @@ class ExtensionLoader
         }
 
         if (false !== \strpos($name, '..')) {
-            throw new RuntimeException(\sprintf('File name "%s" contains invalid characters (..).', $name));
+            throw new \RuntimeException(\sprintf('File name "%s" contains invalid characters (..).', $name));
         }
 
         $path = '';

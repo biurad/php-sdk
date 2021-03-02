@@ -17,16 +17,11 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Commands\Debug;
 
-use Closure;
 use DivineNii\Invoker\CallableResolver;
 use DivineNii\Invoker\Interfaces\InvokerInterface;
-use Flight\Routing\Interfaces\RouteCollectorInterface;
-use Flight\Routing\Interfaces\RouteInterface;
+use Flight\Routing\Route;
 use Flight\Routing\Router;
 use Psr\Http\Server\RequestHandlerInterface;
-use ReflectionException;
-use ReflectionFunction;
-use ReflectionMethod;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputInterface;
@@ -83,8 +78,8 @@ EOT
         $this->table = new Table($output);
         $grid        = $this->table->setHeaders(['Name:', 'Verbs:', 'Pattern:', 'Target:']);
 
-        foreach ($this->router->getRoutes() as $route) {
-            if ($route instanceof RouteInterface) {
+        foreach ($this->router->getCollection() as $route) {
+            if ($route instanceof Route) {
                 $grid->addRow(
                     [
                         $route->getName(),
@@ -102,13 +97,13 @@ EOT
     }
 
     /**
-     * @param RouteInterface $route
+     * @param Route $route
      *
      * @return string
      */
-    private function getVerbs(RouteInterface $route): string
+    private function getVerbs(Route $route): string
     {
-        if ($route->getMethods() === RouteCollectorInterface::HTTP_METHODS_STANDARD) {
+        if ($route->getMethods() === Router::HTTP_METHODS_STANDARD) {
             return '*';
         }
 
@@ -141,11 +136,11 @@ EOT
     }
 
     /**
-     * @param RouteInterface $route
+     * @param Route $route
      *
      * @return string
      */
-    private function getPattern(RouteInterface $route): string
+    private function getPattern(Route $route): string
     {
         $pattern = \str_replace(
             '[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}',
@@ -163,13 +158,13 @@ EOT
     }
 
     /**
-     * @param RouteInterface $route
+     * @param Route $route
      *
-     * @throws ReflectionException
+     * @throws \ReflectionException
      *
      * @return string
      */
-    private function getTarget(RouteInterface $route): string
+    private function getTarget(Route $route): string
     {
         if (
             \is_string($controller = $route->getController()) &&
@@ -179,7 +174,7 @@ EOT
         }
 
         if (\is_string($target = $controller) && \function_exists($controller)) {
-            $target = Closure::fromCallable($controller);
+            $target = \Closure::fromCallable($controller);
         }
 
         if (!str_ends_with($route->getName(), '__restful')) {
@@ -187,8 +182,8 @@ EOT
         }
 
         switch (true) {
-            case $target instanceof Closure:
-                $reflection = new ReflectionFunction($target);
+            case $target instanceof \Closure:
+                $reflection = new \ReflectionFunction($target);
                 $args       = ['php', $reflection->getName()];
 
                 if (false !== $reflection->getFileName()) {
@@ -198,7 +193,7 @@ EOT
                 return \sprintf('Closure(%s:%s)', ...$args);
 
             case \is_callable($target):
-                $reflection = new ReflectionMethod($target[0], $target[1]);
+                $reflection = new \ReflectionMethod($target[0], $target[1]);
 
                 return \sprintf(
                     '%s->%s',

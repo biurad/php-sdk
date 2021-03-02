@@ -76,7 +76,6 @@ class AnnotationsExtension extends Extension
 
             foreach ($this->config->ignore as $annotationName) {
                 $readerDefinition->addSetup('addGlobalIgnoredName', [$annotationName]);
-                AnnotationReader::addGlobalIgnoredName($annotationName);
             }
         }
 

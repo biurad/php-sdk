@@ -17,28 +17,16 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Loaders;
 
-use ArrayAccess;
 use Biurad;
 use Biurad\DependencyInjection\Adapters;
 use Biurad\DependencyInjection\Loader;
-use Closure;
 use Composer\Autoload\ClassLoader;
 use Contributte;
-use Countable;
-use Iterator;
-use IteratorAggregate;
-use JsonSerializable;
 use Nette;
 use Nette\Bootstrap\Configurator;
 use Nette\DI;
 use Psr\Container\ContainerInterface;
-use ReflectionClass;
-use Serializable;
-use SplDoublyLinkedList;
-use SplStack;
-use stdClass;
 use Tracy;
-use Traversable;
 
 class ContainerLoader extends Configurator
 {
@@ -70,16 +58,16 @@ class ContainerLoader extends Configurator
 
     /** @var string[] of classes which shouldn't be autowired */
     public $autowireExcludedClasses = [
-        ArrayAccess::class,
-        Countable::class,
-        IteratorAggregate::class,
-        SplDoublyLinkedList::class,
-        stdClass::class,
-        SplStack::class,
-        Iterator::class,
-        Traversable::class,
-        Serializable::class,
-        JsonSerializable::class,
+        \ArrayAccess::class,
+        \Countable::class,
+        \IteratorAggregate::class,
+        \SplDoublyLinkedList::class,
+        \stdClass::class,
+        \SplStack::class,
+        \Iterator::class,
+        \Traversable::class,
+        \Serializable::class,
+        \JsonSerializable::class,
     ];
 
     /**
@@ -105,13 +93,13 @@ class ContainerLoader extends Configurator
         );
 
         return $loader->load(
-            Closure::fromCallable([$this, 'generateContainer']),
+            \Closure::fromCallable([$this, 'generateContainer']),
             [
                 $this->staticParameters,
                 \array_keys($this->dynamicParameters),
                 $this->configs,
                 \PHP_VERSION_ID - \PHP_RELEASE_VERSION, // minor PHP version
-                \class_exists(ClassLoader::class) ? \filemtime((new ReflectionClass(ClassLoader::class))->getFilename()) : null, // composer update
+                \class_exists(ClassLoader::class) ? \filemtime((new \ReflectionClass(ClassLoader::class))->getFilename()) : null, // composer update
             ]
         );
     }
