@@ -18,17 +18,13 @@ declare(strict_types=1);
 namespace Biurad\Framework\Debug\Route;
 
 use Biurad\Framework\Debug\Template\TemplatesPanel;
-use Closure;
 use DivineNii\Invoker\CallableResolver;
-use Flight\Routing\Interfaces\RouteInterface;
 use Flight\Routing\DebugRoute;
+use Flight\Routing\Route;
 use Flight\Routing\Router;
 use Nette;
 use Nette\Utils\Callback;
 use Psr\Http\Server\RequestHandlerInterface;
-use ReflectionClass;
-use ReflectionFunction;
-use ReflectionMethod;
 use Tracy;
 
 /**
@@ -56,7 +52,7 @@ final class RoutesPanel implements Tracy\IBarPanel
     /** @var array */
     private $routes = [];
 
-    /** @var ReflectionClass|ReflectionFunction|ReflectionMethod|string */
+    /** @var \ReflectionClass|\ReflectionFunction|\ReflectionMethod|string */
     private $source;
 
     public function __construct(Router $router)
@@ -92,15 +88,15 @@ final class RoutesPanel implements Tracy\IBarPanel
         });
     }
 
-    private function findSource(RouteInterface $route)
+    private function findSource(Route $route)
     {
-        $presenter = $route->getController();
+        $presenter = $route->get('controller');
 
         if ($presenter instanceof RequestHandlerInterface) {
             $presenter = \get_class($presenter) . '@' . 'handle';
         } elseif (\is_string($presenter) && \function_exists($presenter)) {
             $presenter = $presenter;
-        } elseif (\is_callable($presenter) && !$presenter instanceof Closure) {
+        } elseif (\is_callable($presenter) && !$presenter instanceof \Closure) {
             $presenter = (\is_object($presenter[0]) ? \get_class($presenter[0]) : $presenter[0]) . '@' . $presenter[1];
         }
 
@@ -110,7 +106,7 @@ final class RoutesPanel implements Tracy\IBarPanel
             [, $class, $method] = $matches;
         }
 
-        $rc = \is_callable($presenter) ? Callback::toReflection($presenter) : new ReflectionClass($class);
+        $rc = \is_callable($presenter) ? Callback::toReflection($presenter) : new \ReflectionClass($class);
 
         return isset($method) && $rc->hasMethod($method) ? $rc->getMethod($method) : $rc;
     }

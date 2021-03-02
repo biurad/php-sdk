@@ -22,10 +22,8 @@ use Biurad\DependencyInjection\Extension;
 use Biurad\Framework\Commands\Debug\RouteCommand;
 use Biurad\Framework\Debug\Route\RoutesPanel;
 use Biurad\Framework\Kernel;
-use Biurad\Framework\Listeners\EventRouteListener;
 use Biurad\Framework\Loaders\ExtensionLoader;
 use Biurad\Http\Middlewares\AccessControlMiddleware;
-use Biurad\Http\Middlewares\CacheControlMiddleware;
 use Biurad\Http\Middlewares\ContentSecurityPolicyMiddleware;
 use Biurad\Http\Middlewares\CookiesMiddleware;
 use Biurad\Http\Middlewares\ErrorHandlerMiddleware;
@@ -33,8 +31,10 @@ use Biurad\Http\Middlewares\HttpMiddleware;
 use Biurad\Http\Middlewares\SessionMiddleware;
 use Flight\Routing\Annotation\Listener;
 use Flight\Routing\Interfaces\RouteListenerInterface;
+use Flight\Routing\Matchers\SimpleRouteDumper;
+use Flight\Routing\Matchers\SimpleRouteMatcher;
 use Flight\Routing\Middlewares\PathMiddleware;
-use Flight\Routing\RouteList;
+use Flight\Routing\RouteCollection;
 use Flight\Routing\Router as FlightRouter;
 use Nette;
 use Nette\DI\CompilerExtension;
@@ -44,7 +44,6 @@ use Nette\DI\Definitions\Statement;
 use Nette\Loaders\RobotLoader;
 use Nette\PhpGenerator\PhpLiteral;
 use Nette\Schema\Expect;
-use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 class RouterExtension extends Extension
@@ -55,15 +54,18 @@ class RouterExtension extends Extension
     public function getConfigSchema(): Nette\Schema\Schema
     {
         return Nette\Schema\Expect::structure([
-            'namespace'             => Nette\Schema\Expect::string()->default(null),
-            'defaults'              => Nette\Schema\Expect::array()->before(function ($value) {
-                return \is_string($value) ? [$value] : $value;
-            }),
+            'redirect_permanent'    => Nette\Schema\Expect::bool(false),
+            'response_error'        => Nette\Schema\Expect::bool(true),
+            'options'               => Nette\Schema\Expect::structure([
+                'namespace'            => Nette\Schema\Expect::string(),
+                'matcher_class'        => Nette\Schema\Expect::string(SimpleRouteMatcher::class),
+                'matcher_dumper_class' => Nette\Schema\Expect::string(SimpleRouteDumper::class),
+                'cache_dir'            => Nette\Schema\Expect::string(),
+                'options_skip'         => Nette\Schema\Expect::bool(false),
+                'debug'                => Nette\Schema\Expect::bool($this->getContainerBuilder()->parameters['debugMode']),
+            ])->castTo('array'),
             'resource'              => Nette\Schema\Expect::string()->nullable()->assert(function ($value) {
                 return \is_dir($value) || \class_exists($value) || \interface_exists($value);
-            }),
-            'requirements'          => Nette\Schema\Expect::array()->before(function ($value) {
-                return \is_string($value) ? [$value] : $value;
             }),
             'middlewares'           => Expect::array()->before(function ($value) {
                 return \is_string($value) ? [$value] : $value;
@@ -71,13 +73,13 @@ class RouterExtension extends Extension
             'shortcut'              => Expect::arrayOf(
                 Expect::structure([
                     'path'          => Nette\Schema\Expect::string(),
-                    'name'          => Nette\Schema\Expect::string(),
-                    'methods'       => Expect::array()->before(function ($methods) {
+                    'name'          => Nette\Schema\Expect::string()->nullable(),
+                    'methods'       => Expect::list()->items('string')->before(function ($methods) {
                         return \is_string($methods) ? [$methods] : $methods;
                     }),
                     'mode'          => Nette\Schema\Expect::anyOf('DEPLOY-MODE', 'DEBUG-MODE', null),
                     'controller'    => Expect::anyOf(Expect::string(), Expect::array(), Expect::object()),
-                    'domain'        => Nette\Schema\Expect::string(),
+                    'domain'        => Nette\Schema\Expect::list()->items('string'),
                     'requirements'  => Nette\Schema\Expect::anyOf(Expect::string(), Expect::array()),
                     'defaults'      => Nette\Schema\Expect::anyOf(Expect::string(), Expect::array()),
                     'arguments'     => Nette\Schema\Expect::anyOf(Expect::string(), Expect::array()),
@@ -112,57 +114,39 @@ class RouterExtension extends Extension
         $container = $this->getContainerBuilder();
 
         $this->addRoute(
-            $container->register($this->prefix('collector'), RouteList::class),
+            $container->register($this->prefix('collector'), RouteCollection::class)->setArgument(0, false),
             $this->getFromConfig('shortcut')
         );
 
         if ($container->getByType(EventDispatcherInterface::class)) {
-            $container->register($this->prefix('route_listener'), EventRouteListener::class);
+            //$container->register($this->prefix('route_listener'), EventRouteListener::class);
         }
 
-        $router = $container->register($this->prefix('factory'), FlightRouter::class);
-
-        if ($container->getParameter('debugMode')) {
-            $router->addSetup('setProfile');
-        }
-
-        if (null !== $this->getFromConfig('namespace')) {
-            $router->addSetup('setNamespace', [$this->getFromConfig('namespace')]);
-        }
-
-        if (!empty($this->getFromConfig('requirements'))) {
-            $router->addSetup('addParameters', [$this->getFromConfig('requirements')]);
-        }
-
-        if (!empty($this->getFromConfig('defaults'))) {
-            $router->addSetup('addParameters', [
-                $this->getFromConfig('defaults'),
-                new PhpLiteral('Flight\Routing\Router::TYPE_DEFAULT'),
-            ]);
-        }
+        $router = $container->register($this->prefix('factory'), FlightRouter::class)
+            ->setArgument('options', $this->getFromConfig('options'));
 
         if ($container->getByType(AnnotationLoader::class)) {
             $router->addSetup('loadAnnotation');
             $container->register($this->prefix('annotation_listener'), Listener::class);
         } else {
-            $router->addSetup('?->addRoute(??)', [
+            $router->addSetup("?->addRoute(??)", [
                 '@self', new PhpLiteral('...'), new Statement([new Reference($this->prefix('collector')), 'getRoutes']),
             ]);
         }
 
         $middlewares = \array_merge(
             [
-                ErrorHandlerMiddleware::class,
-                $container->getByType(CacheItemPoolInterface::class) ? CacheControlMiddleware::class : null,
-                CookiesMiddleware::class,
-                SessionMiddleware::class,
+                PathMiddleware::class,
+                HttpMiddleware::class,
             ],
             $this->getFromConfig('middlewares'),
             [
-                PathMiddleware::class,
-                ContentSecurityPolicyMiddleware::class,
+                CookiesMiddleware::class,
+                SessionMiddleware::class,
                 AccessControlMiddleware::class,
-                HttpMiddleware::class,
+                ContentSecurityPolicyMiddleware::class,
+                //RouteHandlerMiddleware::class,
+                new Statement(ErrorHandlerMiddleware::class, [$this->getFromConfig('response_error')])
             ],
         );
 
@@ -298,25 +282,26 @@ class RouterExtension extends Extension
     {
         $container = $this->getContainerBuilder();
 
-        foreach ($routes as $index => $route) {
+        foreach ($routes as $route) {
             $methods      = empty($route->methods) ? ['GET', 'HEAD'] : $route->methods;
-            $name         = null !== $route->name ? $route->name : 'generated_route_' . $index;
+            $name         = null !== $route->name 
+                ? $container->literal('->bind(?)', [$route->name ?: '$service->generateRouteName(\'\')']) : null;
             $host         = null !== $route->domain
-                ? $container->literal('->setDomain(?)', [$route->domain]) : null;
+                ? $container->literal('->domain(...?)', [$route->domain]) : null;
             $defaults     = !empty($route->defaults)
-                ? $container->literal('->setDefaults(?)', [$this->resolveArugments($route->defaults)]) : null;
+                ? $container->literal('->defaults(?)', [$this->resolveArugments($route->defaults)]) : null;
             $requirements = !empty($route->requirements)
-                ? $container->literal('->setPatterns(?)', [$this->resolveArugments($route->requirements)]) : null;
+                ? $container->literal('->asserts(?)', [$this->resolveArugments($route->requirements)]) : null;
             $middlewares  = !empty($route->middlewares)
-                ? $container->literal('->addMiddleware(...?)', [$route->middlewares]) : null;
+                ? $container->literal('->middleware(...?)', [$route->middlewares]) : null;
             $arguments    = null !== $route->arguments
-                ? $container->literal('->setArguments(?)', [$this->resolveArugments($route->arguments)]) : null;
+                ? $container->literal('->arguments(?)', [$this->resolveArugments($route->arguments)]) : null;
 
             // Route on debug mode
             if ($container->getParameter('debugMode') && $route->mode == 'DEBUG-MODE') {
                 $collector->addSetup(
-                    "?->addRoute(?, ?, ?, ?){$host}{$middlewares}{$defaults}{$requirements}{$arguments}",
-                    ['@self', $name, $methods, $route->path, $route->controller]
+                    "?->addRoute(?, ?, ?){$name}{$host}{$middlewares}{$defaults}{$requirements}{$arguments}",
+                    ['@self', $route->path, $methods, $route->controller]
                 );
 
                 continue;
@@ -325,8 +310,8 @@ class RouterExtension extends Extension
             // Route on deploy mode
             if ($container->getParameter('productionMode') && $route->mode == 'DEPLOY-MODE') {
                 $collector->addSetup(
-                    "?->addRoute(?, ?, ?, ?){$host}{$middlewares}{$defaults}{$requirements}{$arguments}",
-                    ['@self', $name, $methods, $route->path, $route->controller]
+                    "?->addRoute(?, ?, ?){$name}{$host}{$middlewares}{$defaults}{$requirements}{$arguments}",
+                    ['@self', $route->path, $methods, $route->controller]
                 );
 
                 continue;
@@ -335,8 +320,8 @@ class RouterExtension extends Extension
             // Route on all mode
             if (null === $route->mode) {
                 $collector->addSetup(
-                    "?->addRoute(?, ?, ?, ?){$host}{$middlewares}{$defaults}{$requirements}{$arguments}",
-                    ['@self', $name, $methods, $route->path, $route->controller]
+                    "?->addRoute(?, ?, ?){$name}{$host}{$middlewares}{$defaults}{$requirements}{$arguments}",
+                    ['@self',$route->path, $methods, $route->controller]
                 );
             }
         }
