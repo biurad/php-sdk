@@ -17,6 +17,8 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Debug\Template;
 
+use Tracy\Helpers;
+
 ?>
 
 <style>
@@ -27,12 +29,15 @@ namespace Biurad\Framework\Debug\Template;
     }
 </style>
 
-<h1>UI Templates (<?php echo $duration ?>)</h1>
+<h1>Templates Metrics</h1>
 <div class="tracy-inner tracy-template-bar">
-    <h2><strong>Templates Metrics</strong></h2>
+    <?php $tempPaths = array_map(function ($value) { return $value['name']; }, $this->templates); ?>
+    <h2><strong>Rendered Template: <a href="<?php echo Helpers::editorUri(reset($tempPaths)) ?>">
+        <?php echo basename(reset($tempPaths)) ?></a></strong>
+    </h2>
     <table class="debug-tracy-template-bar">
         <tr>
-            <td><?php echo $duration ?></td>
+            <td><?php echo $this->duration ?></td>
             <td><?php echo $memory ?></td>
             <td><?php echo $this->templateCount ?></td>
             <td><?php echo $this->renderCount ?></td>
@@ -54,7 +59,7 @@ namespace Biurad\Framework\Debug\Template;
         </tr>
         <?php foreach ($this->templates as $tpl): ?>
             <tr>
-                <td><?php echo $tpl['name'] ?></td>
+                <td><a href="<?php echo Helpers::escapeHtml(Helpers::editorUri($tpl['name'])) ?>"><?php echo $tpl['name'] ?></a></td>
                 <td><?php echo $tpl['duration'] ?></td>
                 <td><?php echo $tpl['memory'] ?></td>
             </tr>

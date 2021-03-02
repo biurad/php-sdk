@@ -22,13 +22,13 @@ use Biurad\DependencyInjection\Extension;
 use Biurad\UI\Helper\SlotsHelper;
 use Biurad\UI\Interfaces\RenderInterface;
 use Biurad\UI\Interfaces\TemplateInterface;
-use Biurad\UI\Profile;
 use Biurad\UI\Renders\LatteRender;
 use Biurad\UI\Renders\PhpNativeRender;
 use Biurad\UI\Renders\TwigRender;
 use Biurad\UI\Storage\CacheStorage;
 use Biurad\UI\Storage\FilesystemStorage;
 use Biurad\UI\Template;
+use Latte\Bridges\Tracy\LattePanel;
 use Nette;
 use Nette\DI\Definitions\Reference;
 use Nette\DI\Definitions\Statement;
@@ -77,9 +77,12 @@ class TemplatingExtension extends Extension
             return;
         }
 
+        if (null !== $this->tempPath && !is_dir($this->tempPath)) {
+            @mkdir($this->tempPath. 0777, true);
+        }
+
         $filesystemLoader = new Statement(FilesystemStorage::class, [$this->getFromConfig('paths')]);
         $cacheLoader      = new Statement(CacheStorage::class, [$filesystemLoader, $this->getFromConfig('cache_path')]);
-        $cacheTemplates   = null !== $this->getFromConfig('cache_path');
 
         if (\class_exists('Latte\Engine')) {
             $container->register($this->prefix('latte_engine'), 'Latte\Engine')
@@ -87,10 +90,6 @@ class TemplatingExtension extends Extension
                 ->addSetup('setAutoRefresh', [$container->getParameter('debugMode')]);
 
             $container->register($this->prefix('render_latte'), LatteRender::class);
-
-            if (false !== $cacheTemplates) {
-                $cacheTemplates = false;
-            }
         }
 
         if (\class_exists('Twig\Environment')) {
@@ -101,17 +100,13 @@ class TemplatingExtension extends Extension
                 ]]);
 
             $container->register($this->prefix('render_twig'), TwigRender::class);
-
-            if (false !== $cacheTemplates) {
-                $cacheTemplates = false;
-            }
         }
 
         $factory = $container->register($this->prefix('factory'), Template::class)
             ->setArguments(
                 [
-                    $cacheTemplates ? $cacheLoader : $filesystemLoader,
-                    $container->getParameter('debugMode') ? new Statement(Profile::class) : null,
+                    !$container->getParameter('debugMode') ? $cacheLoader : $filesystemLoader,
+                    $container->getParameter('debugMode'),
                     [],
                 ]
             );
@@ -149,6 +144,13 @@ class TemplatingExtension extends Extension
         }
 
         if ($container->getParameter('debugMode')) {
+            if (class_exists(LattePanel::class)) {
+                $template->addSetup(
+                    [new Reference('Tracy\Bar'), 'addPanel'],
+                    [new Statement(LattePanel::class, [new Reference('Latte\Engine')])]
+                );
+            }
+
             $template->addSetup([new Reference('Tracy\Bar'), 'addPanel'], [new Statement(TemplatesPanel::class, [$template])]);
         }
     }

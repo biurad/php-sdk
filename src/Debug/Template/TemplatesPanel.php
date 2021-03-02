@@ -17,6 +17,7 @@ declare(strict_types=1);
 
 namespace Biurad\Framework\Debug\Template;
 
+use Biurad\UI\Interfaces\RenderInterface;
 use Tracy\Helpers;
 use Tracy\IBarPanel;
 use Biurad\UI\Profile;
@@ -24,11 +25,22 @@ use Biurad\UI\Template;
 
 class TemplatesPanel implements IbarPanel
 {
-    protected $icon = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="#4E910C" d="M8.932 22.492c.016-6.448-.971-11.295-5.995-11.619 4.69-.352 7.113 2.633 9.298 6.907C12.205 6.354 9.882 1.553 4.8 1.297c7.433.07 10.028 5.9 11.508 14.293 1.171-2.282 3.56-5.553 5.347-1.361-1.594-2.04-3.607-1.617-3.978 8.262H8.933z"></path></svg>';
+    /** @var RenderInterface[] */
     protected $renders;
+
+    /** @var int */
     protected $templateCount = 0;
+
+    /** @var int */
     protected $renderCount = 0;
+
+    /** @var int */
     protected $memoryCount = 0;
+
+    /** @var int|string */
+    protected $duration = 0;
+
+    /** @var array<int,mixed[]> */
     protected $templates = [];
 
     /**
@@ -43,8 +55,20 @@ class TemplatesPanel implements IbarPanel
      * {@inheritdoc}
      */
     public function getPanel(): string
+    {   
+        return Helpers::capture(function () {
+            $memory = self::formatBytes($this->memoryCount);
+
+            require __DIR__.'/templates/TemplatesPanel.panel.phtml';
+        });
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getTab(): string
     {
-        $duration = $memory = 0;
+        $duration = 0;
         $profiles = [];
 
         foreach ($this->renders as $render) {
@@ -55,24 +79,13 @@ class TemplatesPanel implements IbarPanel
                 continue;
             }
 
-            $profiles += $profiler->getProfiles();
             $this->processData($profiler);
+            $profiles += $profiler->getProfiles();
         }
 
-        $this->templateCount = count(array_filter($profiles));
-        $duration = self::formatDuration($duration);
-        $memory   = self::formatBytes($this->memoryCount);
+        $this->duration = self::formatDuration($duration);
+        $this->templateCount = count(\array_filter($profiles));
 
-        return Helpers::capture(function () use ($duration, $memory) {
-            require __DIR__.'/templates/TemplatesPanel.panel.phtml';
-        });
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getTab(): string
-    {
         return Helpers::capture(function () {
             require __DIR__.'/templates/TemplatesPanel.tab.phtml';
         });
