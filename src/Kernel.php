@@ -20,7 +20,6 @@ namespace Biurad\Framework;
 use Biurad\DependencyInjection\FactoryInterface;
 use Nette\Bootstrap\Configurator;
 use Nette\SmartObject;
-use Throwable;
 
 /**
  * The Kernel is the heart of the Biurad system.
@@ -77,10 +76,8 @@ abstract class Kernel
         // Let's enable our debugger our exceptions first.
         if (false !== $handleErrors) {
             //$loader->setDebugMode('23.75.345.200'); // enable for your remote IP
-
-            // If this exist in Heroku server, serve debug mode then ...
-            if (isset($_SERVER['HEROKU_SERVER_MODE'])) {
-                $loader->setDebugMode(true);
+            if (isset($_SERVER['APP_DEBUG'])) {
+                $loader->setDebugMode($_SERVER['APP_DEBUG']);
             }
 
             $loader->enableDebugger($directories['logDir'] ?? null);
